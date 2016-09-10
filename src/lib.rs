@@ -57,10 +57,12 @@ macro_rules! forward {
     };
 }
 
+pub mod arbiter;
+pub mod body;
+pub mod handle;
+pub mod shape;
+pub mod space;
 pub mod util;
 pub mod user_data;
 
-pub mod space;
-pub mod body;
-pub mod shape;
-pub mod arbiter;
+pub use self::handle::{Handle, WeakHandle};
