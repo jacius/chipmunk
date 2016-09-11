@@ -1,5 +1,4 @@
 extern crate chipmunk_sys as chip;
-extern crate void;
 
 pub mod arbiter;
 pub mod body;

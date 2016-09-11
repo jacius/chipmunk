@@ -12,7 +12,6 @@ description = "Rust bindings to the chipmunk-2d physics engine.  This crate is a
 path = "../chipmunk-sys"
 
 [dependencies]
-void = "*"
 #chipmunk-sys = "*"
 
 [dev-dependencies]
