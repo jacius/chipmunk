@@ -1,381 +1,424 @@
-use std::any::Any;
-use std::rc::Rc;
-use std::cell::UnsafeCell;
-use std::mem::{transmute, zeroed};
-use std::marker::PhantomData;
-
-use super::body::{Body, BodyHandle};
-use super::handle::WeakHandle;
-use super::user_data::UserData;
+//! Collision shapes.
 
 use chip;
+use chip::cpVect;
+use std::fmt;
 
-use void::Void;
+use super::body::{Body, BodyHandle};
+use super::handle::{Handle, WeakHandle};
 
-pub enum Shape<T=Void> {
-    Poly(PolyShape<T>),
-    Circle(CircleShape<T>),
-    Segment(SegmentShape<T>)
-}
 
-pub struct PolyShape<T=Void> {
-    raw: Rc<UnsafeCell<PolyShapeRaw<T>>>
-}
+/// ShapeHandle provides several shortcuts for creating a new Shape and putting it in a Handle.
+///
+/// - `ShapeHandle::new_circle(body, radius, offset)` is the same `ShapeHandle::from(Shape::new_circle(body, radius, offset))`
+/// - `ShapeHandle::new_segment(body, a, b, radius)` is the same as `ShapeHandle::from(Shape::new_segment(body, a, b, radius))`
+/// - `ShapeHandle::new_poly_raw(body, verts, radius)` is the same as `ShapeHandle::from(Shape::new_poly_raw(body, verts, radius))`
+/// - `ShapeHandle::new_box(body, width, height, radius)` is the same as `ShapeHandle::from(Shape::new_box(body, width, height, radius))`
+pub type ShapeHandle = Handle<Shape>;
 
-pub struct CircleShape<T=Void> {
-    raw: Rc<UnsafeCell<CircleShapeRaw<T>>>
-}
-
-pub struct SegmentShape<T=Void> {
-    raw: Rc<UnsafeCell<SegmentShapeRaw<T>>>
-}
-
-struct PolyShapeRaw<T=Void> {
-    cp_shape: chip::cpPolyShape,
-    user_data: Option<Box<Any>>,
-    _attached_body: WeakHandle<Body>,
-    _phantom: PhantomData<T>
-}
-
-struct CircleShapeRaw<T=Void> {
-    cp_shape: chip::cpCircleShape,
-    user_data: Option<Box<Any>>,
-    _attached_body: WeakHandle<Body>,
-    _phantom: PhantomData<T>
-}
-
-struct SegmentShapeRaw<T=Void> {
-    cp_shape: chip::cpSegmentShape,
-    user_data: Option<Box<Any>>,
-    _attached_body: WeakHandle<Body>,
-    _phantom: PhantomData<T>
-}
-
-impl <T: 'static + Any> UserData<T> for Shape<T> {
-    fn get_userdata_box(&self) -> &Option<Box<Any>> {
-        unsafe {
-            match *self {
-                Shape::Poly(ref p) => &(*p.raw.get()).user_data,
-                Shape::Circle(ref p) => &(*p.raw.get()).user_data,
-                Shape::Segment(ref p) => &(*p.raw.get()).user_data,
-            }
-        }
+impl ShapeHandle {
+    pub fn new_circle(body: &mut BodyHandle, radius: f64, offset: (f64, f64)) -> ShapeHandle {
+        ShapeHandle::from(Shape::new_circle(body, radius, offset))
     }
 
-    fn get_userdata_mut_box(&mut self) -> &mut Option<Box<Any>> {
-        unsafe {
-            match *self {
-                Shape::Poly(ref p) => &mut(*p.raw.get()).user_data,
-                Shape::Circle(ref p) => &mut(*p.raw.get()).user_data,
-                Shape::Segment(ref p) => &mut(*p.raw.get()).user_data,
-            }
-        }
+    pub fn new_segment(body: &mut BodyHandle, a: (f64, f64), b: (f64, f64), radius: f64) -> ShapeHandle {
+        ShapeHandle::from(Shape::new_segment(body, a, b, radius))
+    }
+
+    pub fn new_poly_raw(body: &mut BodyHandle, verts: &[(f64, f64)], radius: f64) -> ShapeHandle {
+        ShapeHandle::from(Shape::new_poly_raw(body, verts, radius))
+    }
+
+    pub fn new_box(body: &mut BodyHandle, width: f64, height: f64, radius: f64) -> ShapeHandle {
+        ShapeHandle::from(Shape::new_box(body, width, height, radius))
     }
 }
 
-impl Shape<Void> {
-    pub fn new_segment(body: &mut BodyHandle, start: (f64, f64), end: (f64, f64), radius: f64) -> Shape<Void> {
-        let mut shape = SegmentShapeRaw {
-            cp_shape: unsafe { zeroed() },
-            user_data: None,
-            _attached_body: body.downgrade(),
-            _phantom: PhantomData
-        };
-        let a = chip::cpv(start.0, start.1);
-        let b = chip::cpv(end.0, end.1);
-        unsafe {
-            chip::cpSegmentShapeInit(&mut shape.cp_shape, body.write().as_mut_ptr(), a, b, radius);
-        }
 
-        Shape::Segment(SegmentShape{ raw: Rc::new(UnsafeCell::new(shape)) })
-    }
+/// Collision shape. Wrapper around `cpShape`.
+///
+/// Shapes define the collision shape of a Body.
+/// A Body can own many Shapes.
+/// If the Shape's mass is greater than zero,
+/// the Body's mass, moment of inertia, etc. are automatically calculated based on its Shapes.
+///
+/// Chipmunk supports three kinds of shape: circles, line segments, and convex polygons.
+///
+/// The three kinds of shapes have some attributes is common, such as mass, friction, and elasticity.
+/// These attributes are accessed via methods of the `Shape` enum.
+///
+/// Each kind of shape also has some unique attributes.
+/// These attributes are accessed via methods of the specific shape struct: `CircleShape`, `SegmentShape`, or `PolyShape`.
+#[derive(Debug)]
+pub enum Shape {
+    Circle(CircleShape),
+    Segment(SegmentShape),
+    Poly(PolyShape)
+}
 
-    pub fn new_circle(body: &mut BodyHandle, radius: f64, offset: (f64, f64)) -> Shape<Void> {
-        let mut shape = CircleShapeRaw {
-            cp_shape: unsafe { zeroed() },
-            user_data: None,
-            _attached_body: body.downgrade(),
-            _phantom: PhantomData
+impl Shape {
+    /// Creates a new `Shape::Circle`
+    /// with the given radius and offset (in local coordinates).
+    /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
+    pub fn new_circle(body: &mut BodyHandle, radius: f64, offset: (f64, f64)) -> Shape {
+        let pointer = unsafe {
+            chip::cpCircleShapeNew(
+                body.write().as_mut_ptr(),
+                radius,
+                cpVect::from(offset)
+            )
         };
 
-        let offset = chip::cpv(offset.0, offset.1);
-        unsafe {
-            chip::cpCircleShapeInit(&mut shape.cp_shape, body.write().as_mut_ptr(), radius, offset);
-        }
-
-        Shape::Circle(CircleShape{ raw: Rc::new(UnsafeCell::new(shape)) })
+        Shape::Circle(CircleShape{
+            pointer: pointer,
+            _attached_body: body.downgrade(),
+        })
     }
 
-    pub fn new_poly(body: &mut BodyHandle, points: &[(f64)], radius: f64) -> Shape<Void> {
-        let mut shape = PolyShapeRaw {
-            cp_shape: unsafe { zeroed() },
-            user_data: None,
-            _attached_body: body.downgrade(),
-            _phantom: PhantomData
+    /// Creates a new `Shape::Segment`
+    /// going from point `a` to point `b` (in local coordinates),
+    /// with the given radius (i.e. thickness).
+    /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
+    pub fn new_segment(body: &mut BodyHandle, a: (f64, f64), b: (f64, f64), radius: f64) -> Shape {
+        let pointer = unsafe {
+            chip::cpSegmentShapeNew(
+                body.write().as_mut_ptr(),
+                cpVect::from(a),
+                cpVect::from(b),
+                radius
+            )
         };
 
-        unsafe {
-            chip::cpPolyShapeInitRaw(&mut shape.cp_shape, body.write().as_mut_ptr(),
-                                    points.len() as i32, transmute(points.as_ptr()),
-                                    radius);
-        }
-
-        Shape::Poly(PolyShape{ raw: Rc::new(UnsafeCell::new(shape)) })
+        Shape::Segment(SegmentShape {
+            pointer: pointer,
+            _attached_body: body.downgrade(),
+        })
     }
 
-    pub fn new_box(body: &mut BodyHandle, width: f64, height: f64, radius: f64) -> Shape<Void> {
-        let mut shape = PolyShapeRaw {
-            cp_shape: unsafe { zeroed() },
-            user_data: None,
+    /// Creates a new `Shape::Poly`
+    /// with the given vertices (points in local coordinates)
+    /// and radius (i.e. thickness).
+    /// The vertices must be convex with a counter-clockwise winding.
+    /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
+    pub fn new_poly_raw(body: &mut BodyHandle, verts: &[(f64, f64)], radius: f64) -> Shape {
+        let verts = verts.iter().map(|p| cpVect::from(*p)).collect::<Vec<cpVect>>();
+
+        let pointer = unsafe { chip::cpPolyShapeAlloc() };
+        unsafe {
+            let _ = chip::cpPolyShapeInitRaw(
+                pointer,
+                body.write().as_mut_ptr(),
+                verts.len() as i32,
+                (&verts).as_ptr() as *const cpVect,
+                radius
+            );
+        }
+
+        Shape::Poly(PolyShape{
+            pointer: pointer as *mut chip::cpShape,
             _attached_body: body.downgrade(),
-            _phantom: PhantomData
+        })
+    }
+
+    /// Creates a new `Shape::Poly`
+    /// that forms a box (rectangle) with the given width and height,
+    /// and has the given radius (i.e. thickness).
+    /// There is no box shape type; this is just an easy way to create a rectangular `Shape::Poly`.
+    /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
+    pub fn new_box(body: &mut BodyHandle, width: f64, height: f64, radius: f64) -> Shape {
+        let pointer = unsafe {
+            chip::cpBoxShapeNew(
+                body.write().as_mut_ptr(),
+                width,
+                height,
+                radius
+            )
         };
 
-        unsafe {
-            chip::cpBoxShapeInit(&mut shape.cp_shape, body.write().as_mut_ptr(),
-                                    width, height, radius);
-        }
-
-        Shape::Poly(PolyShape{ raw: Rc::new(UnsafeCell::new(shape)) })
-    }
-}
-
-impl <T> Shape<T> {
-    pub unsafe fn get_cp_shape(&self) -> *const chip::cpShape {
-        match *self {
-            Shape::Poly(ref p) => transmute(&(*p.raw.get()).cp_shape),
-            Shape::Circle(ref p) => transmute(&(*p.raw.get()).cp_shape),
-            Shape::Segment(ref p) => transmute(&(*p.raw.get()).cp_shape),
-        }
+        Shape::Poly(PolyShape{
+            pointer: pointer,
+            _attached_body: body.downgrade(),
+        })
     }
 
-    pub unsafe fn get_cp_shape_mut(&mut self) -> *mut chip::cpShape {
-        transmute(self.get_cp_shape())
+
+    /// Returns a raw pointer to the internal `cpShape`. Use with caution.
+    #[inline]
+    pub unsafe fn as_ptr(&self) -> *const chip::cpShape {
+        (match self {
+            &Shape::Circle(ref shape) => shape.pointer,
+            &Shape::Segment(ref shape) => shape.pointer,
+            &Shape::Poly(ref shape) => shape.pointer
+        }) as *const chip::cpShape
     }
 
-    pub unsafe fn duplicate(&self) -> Shape<Void> {
-        match *self {
-            Shape::Poly(ref p) => Shape::Poly(transmute(PolyShape{raw: p.raw.clone()})),
-            Shape::Circle(ref p) => Shape::Circle(transmute(CircleShape{raw: p.raw.clone()})),
-            Shape::Segment(ref p) => Shape::Segment(transmute(SegmentShape{raw: p.raw.clone()})),
+    /// Returns a raw mutable pointer to the internal `cpShape`. Use with caution.
+    #[inline]
+    pub unsafe fn as_mut_ptr(&mut self) -> *mut chip::cpShape {
+        match self {
+            &mut Shape::Circle(ref shape) => shape.pointer,
+            &mut Shape::Segment(ref shape) => shape.pointer,
+            &mut Shape::Poly(ref shape) => shape.pointer
         }
     }
 
+
+    /// Returns the density of the Shape, i.e. its mass divided by its area.
     pub fn density(&self) -> f64 {
         unsafe {
-            chip::cpShapeGetDensity(self.get_cp_shape())
+            chip::cpShapeGetDensity(self.as_ptr())
         }
     }
 
-    pub fn elasticity(&self) -> f64 {
-        unsafe {
-            chip::cpShapeGetElasticity(self.get_cp_shape())
-        }
-    }
-
-    pub fn friction(&self) -> f64 {
-        unsafe {
-            chip::cpShapeGetFriction(self.get_cp_shape())
-        }
-    }
-
-    pub fn mass(&self) -> f64 {
-        unsafe {
-            chip::cpShapeGetMass(self.get_cp_shape())
-        }
-    }
-
-    /// Returns true if this shape is a sensor.
-    ///
-    /// A sensor is a shape that dosn't participate in collisions, but
-    /// still calls callbacks.
-    pub fn is_sensor(&self) -> bool {
-        unsafe {
-            let r = chip::cpShapeGetSensor(self.get_cp_shape());
-            if r == 0 {false} else {true}
-        }
-    }
-
-    /// Returns the velocity of the shape at the surface.
-    pub fn surface_velocity(&self) -> (f64, f64) {
-        unsafe {
-            let v = chip::cpShapeGetSurfaceVelocity(self.get_cp_shape());
-            (v.x, v.y)
-        }
-    }
-
+    /// Sets the density of the Shape.
+    /// This actually sets the Shape's mass, calculated using the Shape's area.
+    /// This causes the Shape's Body to recalculate the Body's total mass.
     pub fn set_density(&mut self, density: f64) {
         unsafe {
-            chip::cpShapeSetDensity(self.get_cp_shape_mut(), density);
+            chip::cpShapeSetDensity(self.as_mut_ptr(), density);
         }
     }
 
+    /// Returns the elasticity of the Shape.
+    pub fn elasticity(&self) -> f64 {
+        unsafe {
+            chip::cpShapeGetElasticity(self.as_ptr())
+        }
+    }
+
+    /// Sets the elasticity of the Shape.
+    /// Elasticity must be >= 0.
+    /// High values are more "bouncy" than low values.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if elasticity is less than zero.
     pub fn set_elasticity(&mut self, elasticity: f64) {
+        // Assert in Rust land instead of C, so users get a better backtrace.
+        // The assertion message in C says "positive and non-zero", but that
+        // does not match the assertion being performed.
+        // TODO: Should the function return a Result instead of panicking?
+        assert!(elasticity >= 0.0, "Elasticity must be non-negative.");
         unsafe {
-            chip::cpShapeSetElasticity(self.get_cp_shape_mut(), elasticity);
+            chip::cpShapeSetElasticity(self.as_mut_ptr(), elasticity);
         }
     }
 
-    // set collision type
-    // set filter
+    /// Return the friction of the Shape.
+    pub fn friction(&self) -> f64 {
+        unsafe {
+            chip::cpShapeGetFriction(self.as_ptr())
+        }
+    }
 
+    /// Set the friction of the Shape.
+    /// Friction must be >= 0.
+    /// High values are more "rough" (less "slippery") than low values.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if friction is less than zero.
     pub fn set_friction(&mut self, friction: f64) {
+        // Assert in Rust land instead of C, so users get a better backtrace.
+        // The assertion message in C says "positive and non-zero", but that
+        // does not match the assertion being performed.
+        // TODO: Should the function return a Result instead of panicking?
+        assert!(friction >= 0.0, "Friction must be non-negative.");
         unsafe {
-            chip::cpShapeSetElasticity(self.get_cp_shape_mut(), friction);
+            chip::cpShapeSetFriction(self.as_mut_ptr(), friction);
         }
     }
 
+    /// Return the mass of the Shape.
+    pub fn mass(&self) -> f64 {
+        unsafe {
+            chip::cpShapeGetMass(self.as_ptr())
+        }
+    }
+
+    /// Set the mass of the Shape.
+    /// This causes the Shape's Body to recalculate the Body's total mass.
     pub fn set_mass(&mut self, mass: f64) {
         unsafe {
-            chip::cpShapeSetMass(self.get_cp_shape_mut(), mass);
+            chip::cpShapeSetMass(self.as_mut_ptr(), mass);
         }
     }
 
-    pub fn set_sensor(&mut self, is_sensor: bool) {
+    /// Return true if the Shape is a sensor.
+    pub fn is_sensor(&self) -> bool {
         unsafe {
-            let v = if is_sensor {1} else {0};
-            chip::cpShapeSetSensor(self.get_cp_shape_mut(), v);
+            1 == chip::cpShapeGetSensor(self.as_ptr())
         }
     }
 
+    /// Set whether the Shape is a sensor or not.
+    /// A sensor is a Shape that dosn't participate in collisions, but
+    /// still calls callbacks.
+    pub fn set_is_sensor(&mut self, is_sensor: bool) {
+        unsafe {
+            let is_sensor = if is_sensor {1} else {0};
+            chip::cpShapeSetSensor(self.as_mut_ptr(), is_sensor);
+        }
+    }
 
+    /// Return the surface velocity of the Shape.
+    pub fn surface_velocity(&self) -> (f64, f64) {
+        unsafe {
+            chip::cpShapeGetSurfaceVelocity(self.as_ptr()).into()
+        }
+    }
+
+    /// Set the surface velocity of the Shape.
+    /// Useful for creating conveyor belts or players that move around.
     pub fn set_surface_velocity(&mut self, surface_velocity: (f64, f64)) {
         unsafe {
-            let cpv = chip::cpv(surface_velocity.0, surface_velocity.1);
-            chip::cpShapeSetSurfaceVelocity(self.get_cp_shape_mut(), cpv);
+            chip::cpShapeSetSurfaceVelocity(
+                self.as_mut_ptr(),
+                cpVect::from(surface_velocity)
+            );
         }
     }
 }
 
-impl <T> PolyShape<T> {
-    forward!(count(&self) -> usize,
-    /// Returns the number of vertices in this shape.
-    );
 
-    forward!(radius(&self) -> f64,
-    /// Returns the radius that encompases all the vertices.
-    );
-
-    forward!(vert(&self, i: usize) -> (f64, f64),
-    /// Returns the i-th vertex in this shape.
-    );
+/// Circle collision shape. Wrapper around `cpShape` / `cpCircleShape`.
+///
+/// Use `Shape::new_circle` to create a `CircleShape`.
+pub struct CircleShape {
+    pointer: *mut chip::cpShape,
+    _attached_body: WeakHandle<Body>,
 }
 
-impl <T> CircleShape<T> {
-    forward!(offset(&self) -> (f64, f64),
-    /// Returns the local offset at which the shape is
-    /// placed relative to the body that it is attached to.
-    );
+impl CircleShape {
+    /// Returns the offset of the circle, in local coordinates.
+    pub fn offset(&self) -> (f64, f64) {
+        unsafe {
+            chip::cpCircleShapeGetOffset(self.pointer).into()
+        }
+    }
 
-    forward!(radius(&self) -> f64,
     /// Returns the radius of the circle.
-    );
-}
-
-impl <T> SegmentShape<T> {
-    forward!(start(&self) -> (f64, f64),
-    /// Returns the first point in the segment.
-    );
-
-    forward!(end(&self) -> (f64, f64),
-    /// Returns the second poin in the segment.
-    );
-
-    forward!(normal(&self) -> (f64, f64),
-    /// Returns the normal vector given by this segment.
-    );
-
-    forward!(radius(&self) -> f64,
-    /// Returns the radius that encompases both points.
-    );
-}
-
-impl <T> PolyShapeRaw<T> {
-    fn count(&self) -> usize {
+    pub fn radius(&self) -> f64 {
         unsafe {
-            chip::cpPolyShapeGetCount(transmute(&self.cp_shape)) as usize
-        }
-    }
-
-    fn radius(&self) -> f64 {
-        unsafe {
-            chip::cpPolyShapeGetRadius(transmute(&self.cp_shape))
-        }
-    }
-
-    fn vert(&self, index: usize)  -> (f64, f64) {
-        unsafe {
-            let index = index as i32;
-            let cpv = chip::cpPolyShapeGetVert(transmute(&self.cp_shape), index);
-            (cpv.x, cpv.y)
+            chip::cpCircleShapeGetRadius(self.pointer)
         }
     }
 }
 
-impl <T> CircleShapeRaw<T> {
-    fn offset(&self) -> (f64, f64) {
-        unsafe {
-            let cpv = chip::cpCircleShapeGetOffset(transmute(&self.cp_shape));
-            (cpv.x, cpv.y)
-        }
-    }
-
-    fn radius(&self) -> f64 {
-        unsafe {
-            chip::cpCircleShapeGetRadius(transmute(&self.cp_shape))
-        }
-    }
-}
-
-impl <T> SegmentShapeRaw<T> {
-    fn start(&self) -> (f64, f64) {
-        unsafe {
-            let cpv = chip::cpSegmentShapeGetA(transmute(&self.cp_shape));
-            (cpv.x, cpv.y)
-        }
-    }
-
-    fn end(&self) -> (f64, f64) {
-        unsafe {
-            let cpv = chip::cpSegmentShapeGetB(transmute(&self.cp_shape));
-            (cpv.x, cpv.y)
-        }
-    }
-
-    fn normal(&self) -> (f64, f64) {
-        unsafe {
-            let cpv = chip::cpSegmentShapeGetNormal(transmute(&self.cp_shape));
-            (cpv.x, cpv.y)
-        }
-    }
-
-    fn radius(&self) -> f64 {
-        unsafe {
-            chip::cpSegmentShapeGetRadius(transmute(&self.cp_shape))
-        }
-    }
-}
-
-impl <T> Drop for SegmentShapeRaw<T> {
+impl Drop for CircleShape {
     fn drop(&mut self) {
+        unsafe { chip::cpShapeDestroy(self.pointer); }
+    }
+}
+
+impl fmt::Debug for CircleShape {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("CircleShape")
+            .field("radius", &self.radius())
+            .field("offset", &self.offset())
+            .finish()
+    }
+}
+
+
+/// Line segment collision shape. Wrapper around `cpShape` / `cpSegmentShape`.
+///
+/// Use `Shape::new_segment` to create a `SegmentShape`.
+pub struct SegmentShape {
+    pointer: *mut chip::cpShape,
+    _attached_body: WeakHandle<Body>,
+}
+
+impl SegmentShape {
+    /// Return the first point in the segment, in local coordinates.
+    pub fn a(&self) -> (f64, f64) {
         unsafe {
-            chip::cpShapeDestroy(transmute(&mut self.cp_shape));
+            chip::cpSegmentShapeGetA(self.pointer).into()
+        }
+    }
+
+    /// Return the second point in the segment, in local coordinates.
+    pub fn b(&self) -> (f64, f64) {
+        unsafe {
+            chip::cpSegmentShapeGetB(self.pointer).into()
+        }
+    }
+
+    /// Return the normal vector of this segment, in local coordinates.
+    pub fn normal(&self) -> (f64, f64) {
+        unsafe {
+            chip::cpSegmentShapeGetNormal(self.pointer).into()
+        }
+    }
+
+    /// Return the radius or "thickness" of the line segment.
+    pub fn radius(&self) -> f64 {
+        unsafe {
+            chip::cpSegmentShapeGetRadius(self.pointer)
         }
     }
 }
 
-impl <T> Drop for CircleShapeRaw<T> {
+impl Drop for SegmentShape {
     fn drop(&mut self) {
+        unsafe { chip::cpShapeDestroy(self.pointer); }
+    }
+}
+
+impl fmt::Debug for SegmentShape {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("SegmentShape")
+            .field("a", &self.a())
+            .field("b", &self.b())
+            .field("radius", &self.radius())
+            .field("normal", &self.normal())
+            .finish()
+    }
+}
+
+
+/// Convex polygon collision shape. Wrapper around `cpShape` / `cpPolyShape`.
+///
+/// Use `Shape::new_poly_raw` to create a `PolyShape`.
+pub struct PolyShape {
+    pointer: *mut chip::cpShape,
+    _attached_body: WeakHandle<Body>,
+}
+
+impl PolyShape {
+    /// Return the number of vertices in the polygon.
+    pub fn count(&self) -> usize {
         unsafe {
-            chip::cpShapeDestroy(transmute(&mut self.cp_shape));
+            chip::cpPolyShapeGetCount(self.pointer) as usize
+        }
+    }
+
+    /// Return the radius or "thickness" of the polygon's edges.
+    pub fn radius(&self) -> f64 {
+        unsafe {
+            chip::cpPolyShapeGetRadius(self.pointer)
+        }
+    }
+
+    /// Return the i-th vertex in the shape.
+    pub fn vert(&self, i: usize)  -> (f64, f64) {
+        unsafe {
+            chip::cpPolyShapeGetVert(self.pointer, i as i32).into()
         }
     }
 }
 
-impl <T> Drop for PolyShapeRaw<T> {
+impl Drop for PolyShape {
     fn drop(&mut self) {
-        unsafe {
-            chip::cpShapeDestroy(transmute(&mut self.cp_shape));
-        }
+        unsafe { chip::cpShapeDestroy(self.pointer); }
+    }
+}
+
+impl fmt::Debug for PolyShape {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("PolyShape")
+            .field("count", &self.count())
+            .field("radius", &self.radius())
+            .finish()
     }
 }

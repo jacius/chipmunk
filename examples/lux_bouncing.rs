@@ -5,8 +5,7 @@ use lux::prelude::*;
 use lux::game::*;
 
 use chipmunk::space::Space;
-use chipmunk::BodyHandle;
-use chipmunk::shape::Shape;
+use chipmunk::{BodyHandle, ShapeHandle};
 use chipmunk::util::*;
 
 struct MyGame {
@@ -51,20 +50,20 @@ fn main() {
 
     // Set up a floor for our ball to bounce off of.
     let mut floor_body = BodyHandle::new_static();
-    let mut floor_shape = Shape::new_segment(
+    let mut floor_shape = ShapeHandle::new_segment(
         &mut floor_body, floor_start, floor_end, floor_radius);
 
-    floor_shape.set_friction(floor_friction);
+    floor_shape.write().set_friction(floor_friction);
     space.add_body(&mut floor_body);
     space.add_shape(&mut floor_shape);
 
 
     // Add a bouncing ball to the scene.
     let mut ball_body = BodyHandle::new(ball_mass, ball_moment);
-    let mut ball_shape = Shape::new_circle(&mut ball_body, ball_radius, zero);
+    let mut ball_shape = ShapeHandle::new_circle(&mut ball_body, ball_radius, zero);
 
     ball_body.write().set_position(ball_pos.0, ball_pos.1);
-    ball_shape.set_friction(ball_friction);
+    ball_shape.write().set_friction(ball_friction);
 
     space.add_body(&mut ball_body);
     space.add_shape(&mut ball_shape);

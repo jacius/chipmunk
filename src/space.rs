@@ -9,14 +9,14 @@ use void::Void;
 
 use super::user_data::UserData;
 use super::body::BodyHandle;
-use super::shape::Shape;
+use super::shape::ShapeHandle;
 
 
 struct SpaceRaw<T=Void> {
     cp_space: chip::cpSpace,
     user_data: Option<Box<Any>>,
     bodies: Vec<BodyHandle>,
-    shapes: Vec<Shape<Void>>,
+    shapes: Vec<ShapeHandle>,
     _phantom: PhantomData<T>,
 }
 
@@ -61,7 +61,7 @@ impl <T> Space<T> {
         }
     }
 
-    pub fn add_shape<A>(&mut self, shape: &mut Shape<A>){
+    pub fn add_shape(&mut self, shape: &mut ShapeHandle){
         unsafe {
             (*self.raw.get()).add_shape(shape);
         }
@@ -73,7 +73,7 @@ impl <T> Space<T> {
         }
     }
 
-    pub fn remove_shape<A>(&mut self, shape: Shape<A>){
+    pub fn remove_shape(&mut self, shape: &mut ShapeHandle){
         unsafe {
             (*self.raw.get()).remove_shape(shape);
         }
@@ -246,10 +246,10 @@ impl <T> SpaceRaw <T> {
         }
     }
 
-    fn add_shape<B>(&mut self, shape: &mut Shape<B>) {
+    fn add_shape(&mut self, shape: &mut ShapeHandle) {
         unsafe {
-            self.shapes.push(shape.duplicate());
-            chip::cpSpaceAddShape(&mut self.cp_space, shape.get_cp_shape_mut());
+            self.shapes.push(shape.clone());
+            chip::cpSpaceAddShape(&mut self.cp_space, shape.write().as_mut_ptr());
         }
     }
 
@@ -263,13 +263,13 @@ impl <T> SpaceRaw <T> {
         }
     }
 
-    fn remove_shape<B>(&mut self, mut shape: Shape<B>) {
+    fn remove_shape(&mut self, shape: &mut ShapeHandle) {
         unsafe {
-            let pos = self.shapes.iter_mut().position(|e| e.get_cp_shape() == shape.get_cp_shape());
+            let pos = self.shapes.iter_mut().position(|e| e.read().as_ptr() == shape.read().as_ptr());
             if let Some(pos) = pos {
                 self.shapes.remove(pos);
             }
-            chip::cpSpaceRemoveShape(&mut self.cp_space, shape.get_cp_shape_mut());
+            chip::cpSpaceRemoveShape(&mut self.cp_space, shape.write().as_mut_ptr());
         }
     }
 
