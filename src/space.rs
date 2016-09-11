@@ -8,14 +8,14 @@ use chip;
 use void::Void;
 
 use super::user_data::UserData;
-use super::body::Body;
+use super::body::BodyHandle;
 use super::shape::Shape;
 
 
 struct SpaceRaw<T=Void> {
     cp_space: chip::cpSpace,
     user_data: Option<Box<Any>>,
-    bodies: Vec<Body<Void>>,
+    bodies: Vec<BodyHandle>,
     shapes: Vec<Shape<Void>>,
     _phantom: PhantomData<T>,
 }
@@ -55,7 +55,7 @@ impl <T> Space<T> {
         mem::transmute(ptr)
     }
 
-    pub fn add_body<A>(&mut self, body: &mut Body<A>){
+    pub fn add_body(&mut self, body: &mut BodyHandle){
         unsafe {
             (*self.raw.get()).add_body(body);
         }
@@ -67,7 +67,7 @@ impl <T> Space<T> {
         }
     }
 
-    pub fn remove_body<A>(&mut self, body: Body<A>){
+    pub fn remove_body(&mut self, body: &mut BodyHandle){
         unsafe {
             (*self.raw.get()).remove_body(body);
         }
@@ -239,10 +239,10 @@ impl <T> SpaceRaw <T> {
         }
     }
 
-    fn add_body<B>(&mut self, body: &mut Body<B>) {
+    fn add_body(&mut self, body: &mut BodyHandle) {
         unsafe {
-            self.bodies.push(body.duplicate());
-            chip::cpSpaceAddBody(&mut self.cp_space, body.get_cp_body());
+            self.bodies.push(body.clone());
+            chip::cpSpaceAddBody(&mut self.cp_space, body.write().as_mut_ptr());
         }
     }
 
@@ -253,13 +253,13 @@ impl <T> SpaceRaw <T> {
         }
     }
 
-    fn remove_body<B>(&mut self, mut body: Body<B>) {
+    fn remove_body(&mut self, body: &mut BodyHandle) {
         unsafe {
-            let pos = self.bodies.iter_mut().position(|e| e.get_cp_body() == body.get_cp_body());
+            let pos = self.bodies.iter_mut().position(|b| b.read().as_ptr() == body.read().as_ptr());
             if let Some(pos) = pos {
                 self.bodies.remove(pos);
             }
-            chip::cpSpaceRemoveBody(&mut self.cp_space, body.get_cp_body());
+            chip::cpSpaceRemoveBody(&mut self.cp_space, body.write().as_mut_ptr());
         }
     }
 

@@ -1,7 +1,7 @@
 extern crate chipmunk;
 
 use chipmunk::space::Space;
-use chipmunk::body::Body;
+use chipmunk::BodyHandle;
 use chipmunk::shape::Shape;
 use chipmunk::util::*;
 
@@ -24,7 +24,7 @@ fn main() {
     space.set_gravity(gravity.0, gravity.1);
 
     // Set up a floor for our ball to bounce off of.
-    let mut floor_body = Body::new_static();
+    let mut floor_body = BodyHandle::new_static();
     let mut floor_shape = Shape::new_segment(
         &mut floor_body, floor_start, floor_end, floor_radius);
 
@@ -34,10 +34,10 @@ fn main() {
 
 
     // Add a bouncing ball to the scene.
-    let mut ball_body = Body::new(ball_mass, ball_moment);
+    let mut ball_body = BodyHandle::new(ball_mass, ball_moment);
     let mut ball_shape = Shape::new_circle(&mut ball_body, ball_radius, zero);
 
-    ball_body.set_position(ball_pos.0, ball_pos.1);
+    ball_body.write().set_position(ball_pos.0, ball_pos.1);
     ball_shape.set_friction(ball_friction);
 
     space.add_body(&mut ball_body);
@@ -48,8 +48,8 @@ fn main() {
     // Run the simulation!
     for i in 0 .. 60 {
         let time = time_step * (i as f64);
-        let pos = ball_body.position();
-        let vel = ball_body.velocity();
+        let pos = ball_body.read().position();
+        let vel = ball_body.read().velocity();
         space.step(time_step);
         y_coords.push(pos.1);
 
@@ -66,4 +66,3 @@ fn main() {
         println!("{}#", s);
     }
 }
-

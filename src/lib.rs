@@ -65,4 +65,5 @@ pub mod space;
 pub mod util;
 pub mod user_data;
 
+pub use self::body::{Body, BodyHandle};
 pub use self::handle::{Handle, WeakHandle};

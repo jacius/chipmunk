@@ -5,23 +5,23 @@ use lux::prelude::*;
 use lux::game::*;
 
 use chipmunk::space::Space;
-use chipmunk::body::Body;
+use chipmunk::BodyHandle;
 use chipmunk::shape::Shape;
 use chipmunk::util::*;
 
 struct MyGame {
     space: Space,
-    ball_body: Body
+    ball_body: BodyHandle
 }
 
 impl Game for MyGame {
-    fn update(&mut self, dt: f32, window: &mut Window, _events: &mut EventIterator) -> LuxResult<()> {
+    fn update(&mut self, dt: f32, _window: &mut Window, _events: &mut EventIterator) -> LuxResult<()> {
         self.space.step(dt as f64);
         Ok(())
     }
 
-    fn render(&mut self, lag: f32, _window: &mut Window, frame: &mut Frame) -> LuxResult<()> {
-        let (x, y) = self.ball_body.position();
+    fn render(&mut self, _lag: f32, _window: &mut Window, frame: &mut Frame) -> LuxResult<()> {
+        let (x, y) = self.ball_body.read().position();
         frame.circle(50.0, y as f32 * 10.0, 10.0).fill();
         println!("{}, {}", x, y);
         Ok(())
@@ -44,14 +44,13 @@ fn main() {
     let floor_end = (20.0, 0.0);
     let floor_radius = 0.0;
     let zero = (0.0, 0.0);
-    let time_step = 1.0 / 60.0;
 
     // The space contains everything in the simulation.
     let mut space = Space::new();
     space.set_gravity(gravity.0, gravity.1);
 
     // Set up a floor for our ball to bounce off of.
-    let mut floor_body = Body::new_static();
+    let mut floor_body = BodyHandle::new_static();
     let mut floor_shape = Shape::new_segment(
         &mut floor_body, floor_start, floor_end, floor_radius);
 
@@ -61,10 +60,10 @@ fn main() {
 
 
     // Add a bouncing ball to the scene.
-    let mut ball_body = Body::new(ball_mass, ball_moment);
+    let mut ball_body = BodyHandle::new(ball_mass, ball_moment);
     let mut ball_shape = Shape::new_circle(&mut ball_body, ball_radius, zero);
 
-    ball_body.set_position(ball_pos.0, ball_pos.1);
+    ball_body.write().set_position(ball_pos.0, ball_pos.1);
     ball_shape.set_friction(ball_friction);
 
     space.add_body(&mut ball_body);
@@ -77,4 +76,3 @@ fn main() {
 
     game.run_until_end().unwrap();
 }
-
