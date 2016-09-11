@@ -65,6 +65,7 @@ pub mod space;
 pub mod util;
 pub mod user_data;
 
+pub use self::arbiter::{Arbiter, ContactPoint, ContactPointSet};
 pub use self::body::{Body, BodyHandle};
 pub use self::handle::{Handle, WeakHandle};
 pub use self::shape::{Shape, ShapeHandle, CircleShape, SegmentShape, PolyShape};
