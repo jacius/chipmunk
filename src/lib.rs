@@ -63,7 +63,6 @@ pub mod handle;
 pub mod shape;
 pub mod space;
 pub mod util;
-pub mod user_data;
 
 pub use self::arbiter::{Arbiter, ContactPoint, ContactPointSet};
 pub use self::body::{Body, BodyHandle};
