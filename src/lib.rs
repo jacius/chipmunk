@@ -68,3 +68,4 @@ pub mod user_data;
 pub use self::body::{Body, BodyHandle};
 pub use self::handle::{Handle, WeakHandle};
 pub use self::shape::{Shape, ShapeHandle, CircleShape, SegmentShape, PolyShape};
+pub use self::space::Space;

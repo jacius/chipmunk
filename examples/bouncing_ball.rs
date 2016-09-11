@@ -1,7 +1,6 @@
 extern crate chipmunk;
 
-use chipmunk::space::Space;
-use chipmunk::{BodyHandle, ShapeHandle};
+use chipmunk::{BodyHandle, ShapeHandle, Space};
 use chipmunk::util::*;
 
 fn main() {

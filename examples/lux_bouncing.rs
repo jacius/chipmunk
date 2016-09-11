@@ -4,8 +4,7 @@ extern crate lux;
 use lux::prelude::*;
 use lux::game::*;
 
-use chipmunk::space::Space;
-use chipmunk::{BodyHandle, ShapeHandle};
+use chipmunk::{BodyHandle, ShapeHandle, Space};
 use chipmunk::util::*;
 
 struct MyGame {
