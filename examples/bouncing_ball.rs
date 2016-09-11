@@ -1,7 +1,6 @@
 extern crate chipmunk;
 
 use chipmunk::{BodyHandle, ShapeHandle, Space};
-use chipmunk::util::*;
 
 fn main() {
     let gravity = (0.0, -100.0);
@@ -10,7 +9,7 @@ fn main() {
     let ball_radius = 5.0;
     let ball_mass = 1.0;
     let ball_pos = (0.0, 15.0);
-    let ball_moment = moment_of_circle(ball_mass, ball_radius, 0.0);
+    let ball_moment = chipmunk::moment_for_circle(ball_mass, 0.0, ball_radius, (0.0, 0.0));
     let floor_start = (-20.0, 0.0);
     let floor_end = (20.0, 0.0);
     let floor_radius = 0.0;
