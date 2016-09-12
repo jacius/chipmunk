@@ -72,7 +72,7 @@ impl Ball {
 fn main() {
     // The space contains everything in the simulation.
     let mut space = Space::new();
-    space.set_gravity(0.0, -500.0);
+    space.set_gravity((0.0, -500.0));
 
     // Set up a room with walls and a floor.
     let width = WIDTH as f64;
@@ -108,8 +108,8 @@ fn main() {
         let avel = rng.gen_range(-8.0, 8.0);
 
         let mut body = BodyHandle::new(0.0, 0.0);
-        body.write().set_position(pos.0, pos.1);
-        body.write().set_velocity(vel.0, vel.1);
+        body.write().set_position(pos);
+        body.write().set_velocity(vel);
         body.write().set_angular_velocity_rad(avel);
 
         let mut shape = ShapeHandle::new_circle(&mut body, radius, (0.0, 0.0));

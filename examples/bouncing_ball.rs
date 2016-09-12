@@ -5,7 +5,7 @@ use chipmunk::{BodyHandle, ShapeHandle, Space};
 fn main() {
     // The space contains everything in the simulation.
     let mut space = Space::new();
-    space.set_gravity(0.0, -100.0);
+    space.set_gravity((0.0, -100.0));
 
     // Set up a floor for our ball to bounce off of.
     let mut floor_body = BodyHandle::new_static();
@@ -20,7 +20,7 @@ fn main() {
     let mut ball_body = BodyHandle::new(0.0, 0.0);
     let mut ball_shape = ShapeHandle::new_circle(&mut ball_body, 1.0, (0.0, 0.0));
 
-    ball_body.write().set_position(0.0, 20.0);
+    ball_body.write().set_position((0.0, 20.0));
     ball_shape.write().set_mass(10.0);
     ball_shape.write().set_elasticity(0.9);
 

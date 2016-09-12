@@ -1,5 +1,5 @@
 use chip;
-use chip::cpv;
+use chip::cpVect;
 
 use super::handle::Handle;
 
@@ -160,9 +160,9 @@ impl Body {
     /// Sets the position of the center of gravity on this body.
     ///
     /// The center of gravity is in local coordinates.
-    pub fn set_center_of_gravity(&mut self, x: f64, y: f64) {
+    pub fn set_center_of_gravity(&mut self, cog: (f64, f64)) {
         unsafe {
-            chip::cpBodySetCenterOfGravity(self.as_mut_ptr(), cpv(x, y));
+            chip::cpBodySetCenterOfGravity(self.as_mut_ptr(), cpVect::from(cog));
         }
     }
 
@@ -177,9 +177,9 @@ impl Body {
     ///
     /// The force is not reset during each physics step.  If you want
     /// to reset the force, you must do that manually.
-    pub fn set_force(&mut self, x: f64, y: f64) {
+    pub fn set_force(&mut self, force: (f64, f64)) {
         unsafe {
-            chip::cpBodySetForce(self.as_mut_ptr(), cpv(x, y));
+            chip::cpBodySetForce(self.as_mut_ptr(), cpVect::from(force));
         }
     }
 
@@ -221,9 +221,9 @@ impl Body {
     }
 
     /// Sets the position of the body in world coordinates.
-    pub fn set_position(&mut self, x: f64, y: f64) {
+    pub fn set_position(&mut self, pos: (f64, f64)) {
         unsafe {
-            chip::cpBodySetPosition(self.as_mut_ptr(), cpv(x, y));
+            chip::cpBodySetPosition(self.as_mut_ptr(), cpVect::from(pos));
         }
     }
 
@@ -249,9 +249,9 @@ impl Body {
     }
 
     /// Directly sets the velocity of the body.
-    pub fn set_velocity(&mut self, vx: f64, vy: f64) {
+    pub fn set_velocity(&mut self, vel: (f64, f64)) {
         unsafe {
-            chip::cpBodySetVelocity(self.as_mut_ptr(), cpv(vx, vy));
+            chip::cpBodySetVelocity(self.as_mut_ptr(), cpVect::from(vel));
         }
     }
 }
