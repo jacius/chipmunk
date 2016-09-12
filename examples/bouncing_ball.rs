@@ -3,63 +3,36 @@ extern crate chipmunk;
 use chipmunk::{BodyHandle, ShapeHandle, Space};
 
 fn main() {
-    let gravity = (0.0, -100.0);
-    let floor_friction = 1.0;
-    let ball_friction = 0.7;
-    let ball_radius = 5.0;
-    let ball_mass = 1.0;
-    let ball_pos = (0.0, 15.0);
-    let ball_moment = chipmunk::moment_for_circle(ball_mass, 0.0, ball_radius, (0.0, 0.0));
-    let floor_start = (-20.0, 0.0);
-    let floor_end = (20.0, 0.0);
-    let floor_radius = 0.0;
-    let zero = (0.0, 0.0);
-    let time_step = 1.0 / 60.0;
-
     // The space contains everything in the simulation.
     let mut space = Space::new();
-    space.set_gravity(gravity.0, gravity.1);
+    space.set_gravity(0.0, -100.0);
 
     // Set up a floor for our ball to bounce off of.
     let mut floor_body = BodyHandle::new_static();
     let mut floor_shape = ShapeHandle::new_segment(
-        &mut floor_body, floor_start, floor_end, floor_radius);
+        &mut floor_body, (-10.0, 0.0), (10.0, 0.0), 0.0);
 
-    floor_shape.write().set_friction(floor_friction);
+    floor_shape.write().set_elasticity(0.6);
     space.add_body(&mut floor_body);
     space.add_shape(&mut floor_shape);
 
-
     // Add a bouncing ball to the scene.
-    let mut ball_body = BodyHandle::new(ball_mass, ball_moment);
-    let mut ball_shape = ShapeHandle::new_circle(&mut ball_body, ball_radius, zero);
+    let mut ball_body = BodyHandle::new(0.0, 0.0);
+    let mut ball_shape = ShapeHandle::new_circle(&mut ball_body, 1.0, (0.0, 0.0));
 
-    ball_body.write().set_position(ball_pos.0, ball_pos.1);
-    ball_shape.write().set_friction(ball_friction);
+    ball_body.write().set_position(0.0, 20.0);
+    ball_shape.write().set_mass(10.0);
+    ball_shape.write().set_elasticity(0.9);
 
     space.add_body(&mut ball_body);
     space.add_shape(&mut ball_shape);
 
-    let mut y_coords = vec![];
-
     // Run the simulation!
-    for i in 0 .. 60 {
-        let time = time_step * (i as f64);
+    for _ in 0..40 {
+        space.step(1.0/30.0);
         let pos = ball_body.read().position();
-        let vel = ball_body.read().velocity();
-        space.step(time_step);
-        y_coords.push(pos.1);
-
-        println!("t: {:?}, p: {:?}, v: {:?}", time, pos, vel);
-    }
-
-    let min = y_coords.iter()
-                      .cloned()
-                      .map(|a| a as i32)
-                      .min().unwrap();
-    for coord in y_coords {
-        let coord = ((coord - min as f64) * 10.0) as usize;
-        let s: String = ::std::iter::repeat(' ').take(coord).collect();
-        println!("{}#", s);
+        let y = (4.0 * pos.1).round().max(0.0);
+        let s: String = ::std::iter::repeat(' ').take(y as usize).collect();
+        println!("{}o", s);
     }
 }

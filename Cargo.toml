@@ -16,3 +16,4 @@ path = "../chipmunk-sys"
 
 [dev-dependencies]
 lux = "*"
+rand = "0.3"
