@@ -231,6 +231,27 @@ impl Space {
         }
     }
 
+    /// Update the collision detection info for the static shapes in the space.
+    pub fn reindex_static(&mut self) {
+        unsafe {
+            chip::cpSpaceReindexStatic(self.as_mut_ptr())
+        }
+    }
+
+    /// Update the collision detection data for a specific shape in the space.
+    pub fn reindex_shape(&mut self, shape: &mut ShapeHandle) {
+        unsafe {
+            chip::cpSpaceReindexShape(self.as_mut_ptr(), shape.write().as_mut_ptr())
+        }
+    }
+
+    /// Update the collision detection data for all shapes attached to a body.
+    pub fn reindex_shapes_for_body(&mut self, body: &mut BodyHandle) {
+        unsafe {
+            chip::cpSpaceReindexShapesForBody(self.as_mut_ptr(), body.write().as_mut_ptr())
+        }
+    }
+
     /// Returns the ellapsed time before a group of idle bodies is put to sleep.
     ///
     /// Defaults to infinity (no sleeping).
@@ -247,6 +268,13 @@ impl Space {
     pub fn set_sleep_time_threshold(&mut self, threshold: f64) {
         unsafe {
             chip::cpSpaceSetSleepTimeThreshold(self.as_mut_ptr(), threshold);
+        }
+    }
+
+    /// Switch the space to use a spatial hash as its spatial index.
+    pub fn use_spatial_hash(&mut self, dim: f64, count: u32) {
+        unsafe {
+            chip::cpSpaceUseSpatialHash(self.as_mut_ptr(), dim, count as i32)
         }
     }
 }
