@@ -163,6 +163,20 @@ impl Shape {
     }
 
 
+    /// Return the calculated area of the Shape.
+    pub fn area(&self) -> f64 {
+        unsafe {
+            chip::cpShapeGetArea(self.as_ptr())
+        }
+    }
+
+    /// Return the center of gravity for the Shape (in local coordinates).
+    pub fn center_of_gravity(&self) -> (f64, f64) {
+        unsafe {
+            chip::cpShapeGetCenterOfGravity(self.as_ptr()).into()
+        }
+    }
+
     /// Returns the density of the Shape, i.e. its mass divided by its area.
     pub fn density(&self) -> f64 {
         unsafe {
@@ -241,6 +255,13 @@ impl Shape {
     pub fn set_mass(&mut self, mass: f64) {
         unsafe {
             chip::cpShapeSetMass(self.as_mut_ptr(), mass);
+        }
+    }
+
+    /// Return the calculated moment of inertia of the Shape.
+    pub fn moment(&self) -> f64 {
+        unsafe {
+            chip::cpShapeGetMoment(self.as_ptr())
         }
     }
 
