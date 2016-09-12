@@ -102,6 +102,14 @@ impl Body {
         self.pointer
     }
 
+
+    /// Wake up a sleeping or idle body.
+    pub fn activate(&mut self) {
+        unsafe {
+            chip::cpBodyActivate(self.as_mut_ptr())
+        }
+    }
+
     /// Returns the angle of the body in radians.
     pub fn angle_rad(&self) -> f64 {
         unsafe {
@@ -150,6 +158,42 @@ impl Body {
         self.set_angular_velocity_rad(ang_vel.to_radians())
     }
 
+    /// Apply a force to a body. Both the force and point are expressed in world coordinates.
+    pub fn apply_force_at_world_point(&mut self, force: (f64, f64), point: (f64, f64)) {
+        unsafe {
+            chip::cpBodyApplyForceAtWorldPoint(self.as_mut_ptr(),
+                                               cpVect::from(force),
+                                               cpVect::from(point));
+        }
+    }
+
+    /// Apply a force to a body. Both the force and point are expressed in body local coordinates.
+    pub fn apply_force_at_local_point(&mut self, force: (f64, f64), point: (f64, f64)) {
+        unsafe {
+            chip::cpBodyApplyForceAtLocalPoint(self.as_mut_ptr(),
+                                               cpVect::from(force),
+                                               cpVect::from(point));
+        }
+    }
+
+    /// Apply an impulse to a body. Both the impulse and point are expressed in world coordinates.
+    pub fn apply_impulse_at_world_point(&mut self, impulse: (f64, f64), point: (f64, f64)) {
+        unsafe {
+            chip::cpBodyApplyImpulseAtWorldPoint(self.as_mut_ptr(),
+                                                 cpVect::from(impulse),
+                                                 cpVect::from(point));
+        }
+    }
+
+    /// Apply an impulse to a body. Both the impulse and point are expressed in body local coordinates.
+    pub fn apply_impulse_at_local_point(&mut self, impulse: (f64, f64), point: (f64, f64)) {
+        unsafe {
+            chip::cpBodyApplyImpulseAtLocalPoint(self.as_mut_ptr(),
+                                                 cpVect::from(impulse),
+                                                 cpVect::from(point));
+        }
+    }
+
     /// Returns the location of the center of gravity in local coordinates.
     pub fn center_of_gravity(&self) -> (f64, f64) {
         unsafe {
@@ -180,6 +224,48 @@ impl Body {
     pub fn set_force(&mut self, force: (f64, f64)) {
         unsafe {
             chip::cpBodySetForce(self.as_mut_ptr(), cpVect::from(force));
+        }
+    }
+
+    /// Get the velocity on a body (in world units) at a point on the body in local coordinates.
+    pub fn get_velocity_at_local_point(&self, point: (f64, f64)) -> (f64, f64) {
+        unsafe {
+            chip::cpBodyGetVelocityAtLocalPoint(self.as_ptr(), cpVect::from(point)).into()
+        }
+    }
+
+    /// Get the velocity on a body (in world units) at a point on the body in world coordinates.
+    pub fn get_velocity_at_world_point(&self, point: (f64, f64)) -> (f64, f64) {
+        unsafe {
+            chip::cpBodyGetVelocityAtWorldPoint(self.as_ptr(), cpVect::from(point)).into()
+        }
+    }
+
+    /// Returns true if the body is sleeping.
+    pub fn is_sleeping(&self) -> bool {
+        unsafe {
+            1 == chip::cpBodyIsSleeping(self.as_ptr())
+        }
+    }
+
+    /// Get the amount of kinetic energy contained by the body.
+    pub fn kinetic_energy(&self) -> f64 {
+        unsafe {
+            chip::cpBodyKineticEnergy(self.as_ptr())
+        }
+    }
+
+    /// Convert body relative/local coordinates to absolute/world coordinates.
+    pub fn local_to_world(&self, point: (f64, f64)) -> (f64, f64) {
+        unsafe {
+            chip::cpBodyLocalToWorld(self.as_ptr(), cpVect::from(point)).into()
+        }
+    }
+
+    /// Convert absolute/world coordinates to body relative/local coordinates.
+    pub fn world_to_local(&self, point: (f64, f64)) -> (f64, f64) {
+        unsafe {
+            chip::cpBodyWorldToLocal(self.as_ptr(), cpVect::from(point)).into()
         }
     }
 
@@ -224,6 +310,22 @@ impl Body {
     pub fn set_position(&mut self, pos: (f64, f64)) {
         unsafe {
             chip::cpBodySetPosition(self.as_mut_ptr(), cpVect::from(pos));
+        }
+    }
+
+    /// Get the rotation of the body (the x basis vector of its transform).
+    /// This is equal to `(body.angle_rad().cos(), body.angle_rad().sin())`.
+    /// If you just want the angle, use `angle_rad` or `angle_deg`.
+    pub fn rotation(&self) -> (f64, f64) {
+        unsafe {
+            chip::cpBodyGetRotation(self.as_ptr()).into()
+        }
+    }
+
+    /// Force a body to fall asleep immediately.
+    pub fn sleep(&mut self) {
+        unsafe {
+            chip::cpBodySleep(self.as_mut_ptr())
         }
     }
 

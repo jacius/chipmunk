@@ -47,7 +47,7 @@ impl Ball {
         let pos = self.body.read().position();
         let x = pos.0 as f32;
         let y = (HEIGHT as f64 - pos.1) as f32;
-        let angle = -self.body.read().angle_rad() as f32;
+        let rot = self.body.read().rotation();
 
         let radius = {
             match *self.shape.read() {
@@ -62,8 +62,8 @@ impl Ball {
             .fill();
 
         // Draw black line from the center outward
-        let x2 = (x + radius * angle.cos()) as f32;
-        let y2 = (y + radius * angle.sin()) as f32;
+        let x2 = x + radius * rot.0 as f32;
+        let y2 = y + radius * -rot.1 as f32;
         frame.draw_line(x as f32, y as f32, x2, y2, 2.0);
     }
 }
