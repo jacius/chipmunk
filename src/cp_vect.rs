@@ -1,6 +1,11 @@
 use chip::cpVect;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
+#[cfg(feature="cgmath")]
+use cgmath;
+
+#[cfg(feature="nalgebra")]
+use nalgebra;
 
 /// Two-dimensional vector.
 ///
@@ -11,8 +16,11 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 ///
 /// # Conversion
 ///
-/// You can convert `CpVect` to and from `(f64, f64)` or `[f64; 2]`
-/// using the standard `From` and `Into` traits:
+/// To make it easy to use the chipmunk crate with other crates, the `CpVect`
+/// supports conversion to and from a variety of similar types, using the
+/// standard `From` and `Into` traits.
+///
+/// You can always convert `CpVect` to and from `(f64, f64)` and `[f64; 2]`:
 ///
 /// ```
 /// # use chipmunk::CpVect;
@@ -30,6 +38,71 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 /// let array_from_cpvect = <[f64; 2]>::from(cpvect);
 /// let array_into_cpvect: CpVect = [1.2, 3.4].into();
 /// ```
+///
+/// If you compile the chipmunk crate with the "cgmath" feature, you can also
+/// convert `CpVect` to and from `Vector2<f64>` from the cgmath crate:
+///
+/// ```rust
+/// # // Fallback main function in case cgmath is not available:
+/// # #[cfg(not(feature="cgmath"))]
+/// # fn main(){}
+//
+/// # #[cfg(feature="cgmath")]
+/// extern crate cgmath;
+/// extern crate chipmunk;
+/// # #[cfg(feature="cgmath")]
+/// use cgmath::Vector2;
+/// use chipmunk::CpVect;
+///
+/// # #[cfg(feature="cgmath")]
+/// fn main() {
+///     let cpvect = CpVect::new(1.2, 3.4);
+///     let vector2 = Vector2::new(1.2, 3.4);
+///
+///     let cpvect_from_vector2 = CpVect::from(vector2);
+///     let cpvect_into_vector2: Vector2<f64> = cpvect.into();
+///
+///     let vector2_from_cpvect = Vector2::from(cpvect);
+///     let vector2_into_cpvect: CpVect = vector2.into();
+/// }
+/// ```
+///
+/// If you compile the chipmunk crate with the "nalgebra" feature, you can
+/// also convert `CpVect` to and from `Point2<f64>` and `Vector2<f64>` from
+/// the nalgebra crate:
+///
+/// ```rust
+/// # // Fallback main function in case nalgebra is not available:
+/// # #[cfg(not(feature="nalgebra"))]
+/// # fn main(){}
+//
+/// extern crate chipmunk;
+/// # #[cfg(feature="nalgebra")]
+/// extern crate nalgebra;
+/// use chipmunk::CpVect;
+/// # #[cfg(feature="nalgebra")]
+/// use nalgebra::{Point2, Vector2};
+///
+/// # #[cfg(feature="nalgebra")]
+/// fn main() {
+///     let cpvect = CpVect::new(1.2, 3.4);
+///     let point2 = Point2::new(1.2, 3.4);
+///     let vector2 = Vector2::new(1.2, 3.4);
+///
+///     let cpvect_from_point2 = CpVect::from(point2);
+///     let cpvect_into_point2: Point2<f64> = cpvect.into();
+///
+///     let point2_from_cpvect = Point2::from(cpvect);
+///     let point2_into_cpvect: CpVect = point2.into();
+///
+///     let cpvect_from_vector2 = CpVect::from(vector2);
+///     let cpvect_into_vector2: Vector2<f64> = cpvect.into();
+///
+///     let vector2_from_cpvect = Vector2::from(cpvect);
+///     let vector2_into_cpvect: CpVect = vector2.into();
+/// }
+/// ```
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CpVect {
@@ -212,6 +285,51 @@ impl From<cpVect> for CpVect {
     }
 }
 
+/// If chipmunk is compiled with the "cgmath" feature, `CpVect` can be
+/// converted to/from `cgmath::Vector2<f64>`.
+#[cfg(feature="cgmath")]
+impl From<cgmath::Vector2<f64>> for CpVect {
+    fn from(v: cgmath::Vector2<f64>) -> CpVect {
+        CpVect { x: v.x, y: v.y }
+    }
+}
+#[cfg(feature="cgmath")]
+impl From<CpVect> for cgmath::Vector2<f64> {
+    fn from(v: CpVect) -> cgmath::Vector2<f64> {
+        cgmath::Vector2 { x: v.x, y: v.y }
+    }
+}
+
+/// If chipmunk is compiled with the "nalgebra" feature, `CpVect` can be
+/// converted to/from `nalgebra::Vector2<f64>`.
+#[cfg(feature="nalgebra")]
+impl From<nalgebra::Vector2<f64>> for CpVect {
+    fn from(v: nalgebra::Vector2<f64>) -> CpVect {
+        CpVect { x: v.x, y: v.y }
+    }
+}
+#[cfg(feature="nalgebra")]
+impl From<CpVect> for nalgebra::Vector2<f64> {
+    fn from(v: CpVect) -> nalgebra::Vector2<f64> {
+        nalgebra::Vector2 { x: v.x, y: v.y }
+    }
+}
+
+/// If chipmunk is compiled with the "nalgebra" feature, `CpVect` can be
+/// converted to/from `nalgebra::Point2<f64>`.
+#[cfg(feature="nalgebra")]
+impl From<nalgebra::Point2<f64>> for CpVect {
+    fn from(v: nalgebra::Point2<f64>) -> CpVect {
+        CpVect { x: v.x, y: v.y }
+    }
+}
+#[cfg(feature="nalgebra")]
+impl From<CpVect> for nalgebra::Point2<f64> {
+    fn from(v: CpVect) -> nalgebra::Point2<f64> {
+        nalgebra::Point2 { x: v.x, y: v.y }
+    }
+}
+
 
 // Converting CpVect to and from a tuple
 impl From<CpVect> for (f64, f64) {
@@ -308,7 +426,7 @@ mod tests {
     use super::CpVect;
 
     #[test]
-    fn test_cpvect_from_into_tuple() {
+    fn cpvect_from_into_tuple() {
         let v = CpVect::from((1.2, 3.4));
         assert_eq!(1.2, v.x);
         assert_eq!(3.4, v.y);
@@ -321,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cpvect_from_into_array() {
+    fn cpvect_from_into_array() {
         let v = CpVect::from([1.2, 3.4]);
         assert_eq!(1.2, v.x);
         assert_eq!(3.4, v.y);
@@ -332,5 +450,71 @@ mod tests {
         assert_eq!(7.8, v2.y);
         let array: [f64; 2] = v2.into();
         assert_eq!([5.6, 7.8], array);
+    }
+
+    #[cfg(feature="cgmath")]
+    #[test]
+    fn cpvect_from_into_cgmath_vector2() {
+        use cgmath::Vector2;
+
+        let cpv = CpVect::from(Vector2::new(1.2, 3.4));
+        assert_eq!(1.2, cpv.x);
+        assert_eq!(3.4, cpv.y);
+
+        let cgmv = Vector2::from(cpv);
+        assert_eq!(1.2, cgmv.x);
+        assert_eq!(3.4, cgmv.y);
+
+        let cpv: CpVect = Vector2::new(5.6, 7.8).into();
+        assert_eq!(5.6, cpv.x);
+        assert_eq!(7.8, cpv.y);
+
+        let cgmv2: Vector2<f64> = cpv.into();
+        assert_eq!(5.6, cgmv2.x);
+        assert_eq!(7.8, cgmv2.y);
+    }
+
+    #[cfg(feature="nalgebra")]
+    #[test]
+    fn cpvect_from_into_nalgebra_vector2() {
+        use nalgebra::Vector2;
+
+        let cpv = CpVect::from(Vector2::new(1.2, 3.4));
+        assert_eq!(1.2, cpv.x);
+        assert_eq!(3.4, cpv.y);
+
+        let nalv = Vector2::from(cpv);
+        assert_eq!(1.2, nalv.x);
+        assert_eq!(3.4, nalv.y);
+
+        let cpv: CpVect = Vector2::new(5.6, 7.8).into();
+        assert_eq!(5.6, cpv.x);
+        assert_eq!(7.8, cpv.y);
+
+        let nalv2: Vector2<f64> = cpv.into();
+        assert_eq!(5.6, nalv2.x);
+        assert_eq!(7.8, nalv2.y);
+    }
+
+    #[cfg(feature="nalgebra")]
+    #[test]
+    fn cpvect_from_into_nalgebra_point2() {
+        use nalgebra::Point2;
+
+        let cpv = CpVect::from(Point2::new(1.2, 3.4));
+        assert_eq!(1.2, cpv.x);
+        assert_eq!(3.4, cpv.y);
+
+        let nalv = Point2::from(cpv);
+        assert_eq!(1.2, nalv.x);
+        assert_eq!(3.4, nalv.y);
+
+        let cpv: CpVect = Point2::new(5.6, 7.8).into();
+        assert_eq!(5.6, cpv.x);
+        assert_eq!(7.8, cpv.y);
+
+        let nalv2: Point2<f64> = cpv.into();
+        assert_eq!(5.6, nalv2.x);
+        assert_eq!(7.8, nalv2.y);
     }
 }
