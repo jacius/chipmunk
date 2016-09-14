@@ -1,6 +1,6 @@
 use chip;
-use chip::cpVect;
 
+use super::CpVect;
 use super::handle::Handle;
 
 
@@ -159,38 +159,42 @@ impl Body {
     }
 
     /// Apply a force to a body. Both the force and point are expressed in world coordinates.
-    pub fn apply_force_at_world_point(&mut self, force: (f64, f64), point: (f64, f64)) {
+    pub fn apply_force_at_world_point<V1, V2>(&mut self, force: V1, point: V2)
+        where CpVect: From<V1>, CpVect: From<V2> {
         unsafe {
             chip::cpBodyApplyForceAtWorldPoint(self.as_mut_ptr(),
-                                               cpVect::from(force),
-                                               cpVect::from(point));
+                                               CpVect::from(force).into(),
+                                               CpVect::from(point).into());
         }
     }
 
     /// Apply a force to a body. Both the force and point are expressed in body local coordinates.
-    pub fn apply_force_at_local_point(&mut self, force: (f64, f64), point: (f64, f64)) {
+    pub fn apply_force_at_local_point<V1, V2>(&mut self, force: V1, point: V2)
+        where CpVect: From<V1>, CpVect: From<V2> {
         unsafe {
             chip::cpBodyApplyForceAtLocalPoint(self.as_mut_ptr(),
-                                               cpVect::from(force),
-                                               cpVect::from(point));
+                                               CpVect::from(force).into(),
+                                               CpVect::from(point).into());
         }
     }
 
     /// Apply an impulse to a body. Both the impulse and point are expressed in world coordinates.
-    pub fn apply_impulse_at_world_point(&mut self, impulse: (f64, f64), point: (f64, f64)) {
+    pub fn apply_impulse_at_world_point<V1, V2>(&mut self, impulse: V1, point: V2)
+        where CpVect: From<V1>, CpVect: From<V2> {
         unsafe {
             chip::cpBodyApplyImpulseAtWorldPoint(self.as_mut_ptr(),
-                                                 cpVect::from(impulse),
-                                                 cpVect::from(point));
+                                                 CpVect::from(impulse).into(),
+                                                 CpVect::from(point).into());
         }
     }
 
     /// Apply an impulse to a body. Both the impulse and point are expressed in body local coordinates.
-    pub fn apply_impulse_at_local_point(&mut self, impulse: (f64, f64), point: (f64, f64)) {
+    pub fn apply_impulse_at_local_point<V1, V2>(&mut self, impulse: V1, point: V2)
+        where CpVect: From<V1>, CpVect: From<V2> {
         unsafe {
             chip::cpBodyApplyImpulseAtLocalPoint(self.as_mut_ptr(),
-                                                 cpVect::from(impulse),
-                                                 cpVect::from(point));
+                                                 CpVect::from(impulse).into(),
+                                                 CpVect::from(point).into());
         }
     }
 
@@ -204,9 +208,9 @@ impl Body {
     /// Sets the position of the center of gravity on this body.
     ///
     /// The center of gravity is in local coordinates.
-    pub fn set_center_of_gravity(&mut self, cog: (f64, f64)) {
+    pub fn set_center_of_gravity<V>(&mut self, cog: V) where CpVect: From<V> {
         unsafe {
-            chip::cpBodySetCenterOfGravity(self.as_mut_ptr(), cpVect::from(cog));
+            chip::cpBodySetCenterOfGravity(self.as_mut_ptr(), CpVect::from(cog).into());
         }
     }
 
@@ -221,23 +225,23 @@ impl Body {
     ///
     /// The force is not reset during each physics step.  If you want
     /// to reset the force, you must do that manually.
-    pub fn set_force(&mut self, force: (f64, f64)) {
+    pub fn set_force<V>(&mut self, force: V) where CpVect: From<V> {
         unsafe {
-            chip::cpBodySetForce(self.as_mut_ptr(), cpVect::from(force));
+            chip::cpBodySetForce(self.as_mut_ptr(), CpVect::from(force).into());
         }
     }
 
     /// Get the velocity on a body (in world units) at a point on the body in local coordinates.
-    pub fn get_velocity_at_local_point(&self, point: (f64, f64)) -> (f64, f64) {
+    pub fn get_velocity_at_local_point<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
         unsafe {
-            chip::cpBodyGetVelocityAtLocalPoint(self.as_ptr(), cpVect::from(point)).into()
+            chip::cpBodyGetVelocityAtLocalPoint(self.as_ptr(), CpVect::from(point).into()).into()
         }
     }
 
     /// Get the velocity on a body (in world units) at a point on the body in world coordinates.
-    pub fn get_velocity_at_world_point(&self, point: (f64, f64)) -> (f64, f64) {
+    pub fn get_velocity_at_world_point<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
         unsafe {
-            chip::cpBodyGetVelocityAtWorldPoint(self.as_ptr(), cpVect::from(point)).into()
+            chip::cpBodyGetVelocityAtWorldPoint(self.as_ptr(), CpVect::from(point).into()).into()
         }
     }
 
@@ -256,16 +260,16 @@ impl Body {
     }
 
     /// Convert body relative/local coordinates to absolute/world coordinates.
-    pub fn local_to_world(&self, point: (f64, f64)) -> (f64, f64) {
+    pub fn local_to_world<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
         unsafe {
-            chip::cpBodyLocalToWorld(self.as_ptr(), cpVect::from(point)).into()
+            chip::cpBodyLocalToWorld(self.as_ptr(), CpVect::from(point).into()).into()
         }
     }
 
     /// Convert absolute/world coordinates to body relative/local coordinates.
-    pub fn world_to_local(&self, point: (f64, f64)) -> (f64, f64) {
+    pub fn world_to_local<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
         unsafe {
-            chip::cpBodyWorldToLocal(self.as_ptr(), cpVect::from(point)).into()
+            chip::cpBodyWorldToLocal(self.as_ptr(), CpVect::from(point).into()).into()
         }
     }
 
@@ -307,9 +311,9 @@ impl Body {
     }
 
     /// Sets the position of the body in world coordinates.
-    pub fn set_position(&mut self, pos: (f64, f64)) {
+    pub fn set_position<V>(&mut self, pos: V) where CpVect: From<V> {
         unsafe {
-            chip::cpBodySetPosition(self.as_mut_ptr(), cpVect::from(pos));
+            chip::cpBodySetPosition(self.as_mut_ptr(), CpVect::from(pos).into())
         }
     }
 
@@ -351,9 +355,9 @@ impl Body {
     }
 
     /// Directly sets the velocity of the body.
-    pub fn set_velocity(&mut self, vel: (f64, f64)) {
+    pub fn set_velocity<V>(&mut self, vel: V) where CpVect: From<V> {
         unsafe {
-            chip::cpBodySetVelocity(self.as_mut_ptr(), cpVect::from(vel));
+            chip::cpBodySetVelocity(self.as_mut_ptr(), CpVect::from(vel).into())
         }
     }
 }

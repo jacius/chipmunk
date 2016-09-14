@@ -1,6 +1,6 @@
 use chip;
-use chip::cpVect;
 
+use super::CpVect;
 use super::body::BodyHandle;
 use super::shape::ShapeHandle;
 
@@ -103,9 +103,9 @@ impl Space {
     /// Sets the global gravity for all rigid bodies in this space.
     ///
     /// Default is `<0, 0>` (no gravity).
-    pub fn set_gravity(&mut self, grav: (f64, f64)) {
+    pub fn set_gravity<V>(&mut self, grav: V) where CpVect: From<V> {
         unsafe {
-            chip::cpSpaceSetGravity(self.as_mut_ptr(), cpVect::from(grav));
+            chip::cpSpaceSetGravity(self.as_mut_ptr(), CpVect::from(grav).into());
         }
     }
 

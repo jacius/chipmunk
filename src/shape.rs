@@ -1,9 +1,9 @@
 //! Collision shapes.
 
 use chip;
-use chip::cpVect;
 use std::fmt;
 
+use super::CpVect;
 use super::body::{Body, BodyHandle};
 use super::handle::{Handle, WeakHandle};
 
@@ -17,15 +17,18 @@ use super::handle::{Handle, WeakHandle};
 pub type ShapeHandle = Handle<Shape>;
 
 impl ShapeHandle {
-    pub fn new_circle(body: &mut BodyHandle, radius: f64, offset: (f64, f64)) -> ShapeHandle {
+    pub fn new_circle<V>(body: &mut BodyHandle, radius: f64, offset: V) -> ShapeHandle
+        where CpVect: From<V> {
         ShapeHandle::from(Shape::new_circle(body, radius, offset))
     }
 
-    pub fn new_segment(body: &mut BodyHandle, a: (f64, f64), b: (f64, f64), radius: f64) -> ShapeHandle {
+    pub fn new_segment<V1, V2>(body: &mut BodyHandle, a: V1, b: V2, radius: f64) -> ShapeHandle
+        where CpVect: From<V1>, CpVect: From<V2> {
         ShapeHandle::from(Shape::new_segment(body, a, b, radius))
     }
 
-    pub fn new_poly_raw(body: &mut BodyHandle, verts: &[(f64, f64)], radius: f64) -> ShapeHandle {
+    pub fn new_poly_raw<'a, V: 'a>(body: &mut BodyHandle, verts: &'a [V], radius: f64) -> ShapeHandle
+        where CpVect: From<&'a V> {
         ShapeHandle::from(Shape::new_poly_raw(body, verts, radius))
     }
 
@@ -60,12 +63,13 @@ impl Shape {
     /// Creates a new `Shape::Circle`
     /// with the given radius and offset (in local coordinates).
     /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
-    pub fn new_circle(body: &mut BodyHandle, radius: f64, offset: (f64, f64)) -> Shape {
+    pub fn new_circle<V>(body: &mut BodyHandle, radius: f64, offset: V) -> Shape
+        where CpVect: From<V> {
         let pointer = unsafe {
             chip::cpCircleShapeNew(
                 body.write().as_mut_ptr(),
                 radius,
-                cpVect::from(offset)
+                CpVect::from(offset).into()
             )
         };
 
@@ -79,12 +83,13 @@ impl Shape {
     /// going from point `a` to point `b` (in local coordinates),
     /// with the given radius (i.e. thickness).
     /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
-    pub fn new_segment(body: &mut BodyHandle, a: (f64, f64), b: (f64, f64), radius: f64) -> Shape {
+    pub fn new_segment<V1, V2>(body: &mut BodyHandle, a: V1, b: V2, radius: f64) -> Shape
+        where CpVect: From<V1>, CpVect: From<V2> {
         let pointer = unsafe {
             chip::cpSegmentShapeNew(
                 body.write().as_mut_ptr(),
-                cpVect::from(a),
-                cpVect::from(b),
+                CpVect::from(a).into(),
+                CpVect::from(b).into(),
                 radius
             )
         };
@@ -100,8 +105,9 @@ impl Shape {
     /// and radius (i.e. thickness).
     /// The vertices must be convex with a counter-clockwise winding.
     /// The new Shape will be automatically added to the Body when the Shape is added to a Space.
-    pub fn new_poly_raw(body: &mut BodyHandle, verts: &[(f64, f64)], radius: f64) -> Shape {
-        let verts = verts.iter().map(|p| cpVect::from(*p)).collect::<Vec<cpVect>>();
+    pub fn new_poly_raw<'a, V: 'a>(body: &mut BodyHandle, verts: &'a [V], radius: f64) -> Shape
+        where CpVect: From<&'a V> {
+        let verts = verts.iter().map(|v| CpVect::from(v).into()).collect::<Vec<chip::cpVect>>();
 
         let pointer = unsafe { chip::cpPolyShapeAlloc() };
         unsafe {
@@ -109,7 +115,7 @@ impl Shape {
                 pointer,
                 body.write().as_mut_ptr(),
                 verts.len() as i32,
-                (&verts).as_ptr() as *const cpVect,
+                (&verts).as_ptr() as *const chip::cpVect,
                 radius
             );
         }
@@ -295,7 +301,7 @@ impl Shape {
         unsafe {
             chip::cpShapeSetSurfaceVelocity(
                 self.as_mut_ptr(),
-                cpVect::from(surface_velocity)
+                CpVect::from(surface_velocity).into()
             );
         }
     }

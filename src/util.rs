@@ -1,5 +1,5 @@
 use chip;
-use chip::cpVect;
+use super::CpVect;
 
 /// Calculate the area for a circle (possibly hollow).
 /// A solid circle has an inner_radius of 0.
@@ -33,11 +33,12 @@ pub fn moment_for_segment(mass: f64, a: (f64, f64), b: (f64, f64), radius: f64) 
 /// A clockwise winding gives positive area.
 /// This is probably backwards from what you expect,
 /// but matches Chipmunk's the winding for poly shapes.
-pub fn area_for_poly(verts: &[(f64, f64)], radius: f64) -> f64 {
-    let verts = verts.iter().map(|p| cpVect::from(*p)).collect::<Vec<cpVect>>();
+pub fn area_for_poly<'a, V: 'a>(verts: &'a [V], radius: f64) -> f64
+    where CpVect: From<&'a V> {
+    let verts = verts.iter().map(|v| CpVect::from(v).into()).collect::<Vec<chip::cpVect>>();
     unsafe {
         chip::cpAreaForPoly(verts.len() as i32,
-                            (&verts).as_ptr() as *const cpVect,
+                            (&verts).as_ptr() as *const chip::cpVect,
                             radius)
     }
 }
@@ -45,22 +46,24 @@ pub fn area_for_poly(verts: &[(f64, f64)], radius: f64) -> f64 {
 /// Calculate the moment of inertia for a solid polygon shape
 /// assuming its center of gravity is at its centroid.
 /// The offset is added to each vertex.
-pub fn moment_for_poly(mass: f64, verts: &[(f64, f64)], offset: (f64, f64), radius: f64) -> f64 {
-    let verts = verts.iter().map(|p| cpVect::from(*p)).collect::<Vec<cpVect>>();
+pub fn moment_for_poly<'a, V: 'a>(mass: f64, verts: &'a [V], offset: (f64, f64), radius: f64) -> f64
+    where CpVect: From<&'a V> {
+    let verts = verts.iter().map(|v| CpVect::from(v).into()).collect::<Vec<chip::cpVect>>();
     unsafe {
         chip::cpMomentForPoly(mass,
                               verts.len() as i32,
-                              (&verts).as_ptr() as *const cpVect,
+                              (&verts).as_ptr() as *const chip::cpVect,
                               offset.into(),
                               radius)
     }
 }
 
 /// Calculate the natural centroid of a polygon.
-pub fn centroid_for_poly(verts: &[(f64, f64)]) -> (f64, f64) {
-    let verts = verts.iter().map(|p| cpVect::from(*p)).collect::<Vec<cpVect>>();
+pub fn centroid_for_poly<'a, V: 'a>(verts: &'a [V]) -> (f64, f64)
+    where CpVect: From<&'a V> {
+    let verts = verts.iter().map(|v| CpVect::from(v).into()).collect::<Vec<chip::cpVect>>();
     unsafe {
-        chip::cpCentroidForPoly(verts.len() as i32, (&verts).as_ptr() as *const cpVect).into()
+        chip::cpCentroidForPoly(verts.len() as i32, (&verts).as_ptr() as *const chip::cpVect).into()
     }
 }
 
