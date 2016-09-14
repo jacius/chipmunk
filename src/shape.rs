@@ -177,7 +177,7 @@ impl Shape {
     }
 
     /// Return the center of gravity for the Shape (in local coordinates).
-    pub fn center_of_gravity(&self) -> (f64, f64) {
+    pub fn center_of_gravity(&self) -> CpVect {
         unsafe {
             chip::cpShapeGetCenterOfGravity(self.as_ptr()).into()
         }
@@ -289,7 +289,7 @@ impl Shape {
     }
 
     /// Return the surface velocity of the Shape.
-    pub fn surface_velocity(&self) -> (f64, f64) {
+    pub fn surface_velocity(&self) -> CpVect {
         unsafe {
             chip::cpShapeGetSurfaceVelocity(self.as_ptr()).into()
         }
@@ -318,7 +318,7 @@ pub struct CircleShape {
 
 impl CircleShape {
     /// Returns the offset of the circle, in local coordinates.
-    pub fn offset(&self) -> (f64, f64) {
+    pub fn offset(&self) -> CpVect {
         unsafe {
             chip::cpCircleShapeGetOffset(self.pointer).into()
         }
@@ -358,21 +358,21 @@ pub struct SegmentShape {
 
 impl SegmentShape {
     /// Return the first point in the segment, in local coordinates.
-    pub fn a(&self) -> (f64, f64) {
+    pub fn a(&self) -> CpVect {
         unsafe {
             chip::cpSegmentShapeGetA(self.pointer).into()
         }
     }
 
     /// Return the second point in the segment, in local coordinates.
-    pub fn b(&self) -> (f64, f64) {
+    pub fn b(&self) -> CpVect {
         unsafe {
             chip::cpSegmentShapeGetB(self.pointer).into()
         }
     }
 
     /// Return the normal vector of this segment, in local coordinates.
-    pub fn normal(&self) -> (f64, f64) {
+    pub fn normal(&self) -> CpVect {
         unsafe {
             chip::cpSegmentShapeGetNormal(self.pointer).into()
         }
@@ -428,7 +428,7 @@ impl PolyShape {
     }
 
     /// Return the i-th vertex in the shape.
-    pub fn vert(&self, i: usize)  -> (f64, f64) {
+    pub fn vert(&self, i: usize)  -> CpVect {
         unsafe {
             chip::cpPolyShapeGetVert(self.pointer, i as i32).into()
         }

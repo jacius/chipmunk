@@ -199,7 +199,7 @@ impl Body {
     }
 
     /// Returns the location of the center of gravity in local coordinates.
-    pub fn center_of_gravity(&self) -> (f64, f64) {
+    pub fn center_of_gravity(&self) -> CpVect {
         unsafe {
             chip::cpBodyGetCenterOfGravity(self.as_ptr()).into()
         }
@@ -215,7 +215,7 @@ impl Body {
     }
 
     /// Returns the force acting on the body.
-    pub fn force(&self) -> (f64, f64) {
+    pub fn force(&self) -> CpVect {
         unsafe {
             chip::cpBodyGetForce(self.as_ptr()).into()
         }
@@ -232,14 +232,14 @@ impl Body {
     }
 
     /// Get the velocity on a body (in world units) at a point on the body in local coordinates.
-    pub fn get_velocity_at_local_point<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
+    pub fn get_velocity_at_local_point<V>(&self, point: V) -> CpVect where CpVect: From<V> {
         unsafe {
             chip::cpBodyGetVelocityAtLocalPoint(self.as_ptr(), CpVect::from(point).into()).into()
         }
     }
 
     /// Get the velocity on a body (in world units) at a point on the body in world coordinates.
-    pub fn get_velocity_at_world_point<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
+    pub fn get_velocity_at_world_point<V>(&self, point: V) -> CpVect where CpVect: From<V> {
         unsafe {
             chip::cpBodyGetVelocityAtWorldPoint(self.as_ptr(), CpVect::from(point).into()).into()
         }
@@ -260,14 +260,14 @@ impl Body {
     }
 
     /// Convert body relative/local coordinates to absolute/world coordinates.
-    pub fn local_to_world<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
+    pub fn local_to_world<V>(&self, point: V) -> CpVect where CpVect: From<V> {
         unsafe {
             chip::cpBodyLocalToWorld(self.as_ptr(), CpVect::from(point).into()).into()
         }
     }
 
     /// Convert absolute/world coordinates to body relative/local coordinates.
-    pub fn world_to_local<V>(&self, point: V) -> (f64, f64) where CpVect: From<V> {
+    pub fn world_to_local<V>(&self, point: V) -> CpVect where CpVect: From<V> {
         unsafe {
             chip::cpBodyWorldToLocal(self.as_ptr(), CpVect::from(point).into()).into()
         }
@@ -304,7 +304,7 @@ impl Body {
     }
 
     /// Returns the position of the body in world space.
-    pub fn position(&self) -> (f64, f64) {
+    pub fn position(&self) -> CpVect {
         unsafe {
             chip::cpBodyGetPosition(self.as_ptr()).into()
         }
@@ -320,7 +320,7 @@ impl Body {
     /// Get the rotation of the body (the x basis vector of its transform).
     /// This is equal to `(body.angle_rad().cos(), body.angle_rad().sin())`.
     /// If you just want the angle, use `angle_rad` or `angle_deg`.
-    pub fn rotation(&self) -> (f64, f64) {
+    pub fn rotation(&self) -> CpVect {
         unsafe {
             chip::cpBodyGetRotation(self.as_ptr()).into()
         }
@@ -348,7 +348,7 @@ impl Body {
     }
 
     /// Returns the velocity of the body.
-    pub fn velocity(&self) -> (f64, f64) {
+    pub fn velocity(&self) -> CpVect {
         unsafe {
             chip::cpBodyGetVelocity(self.as_ptr()).into()
         }

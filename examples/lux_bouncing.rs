@@ -45,8 +45,8 @@ struct Ball {
 impl Ball {
     fn render(&self, frame: &mut Frame) {
         let pos = self.body.read().position();
-        let x = pos.0 as f32;
-        let y = (HEIGHT as f64 - pos.1) as f32;
+        let x = pos.x as f32;
+        let y = (HEIGHT as f64 - pos.y) as f32;
         let rot = self.body.read().rotation();
 
         let radius = {
@@ -62,9 +62,9 @@ impl Ball {
             .fill();
 
         // Draw black line from the center outward
-        let x2 = x + radius * rot.0 as f32;
-        let y2 = y + radius * -rot.1 as f32;
-        frame.draw_line(x as f32, y as f32, x2, y2, 2.0);
+        let x2 = x + radius * rot.x as f32;
+        let y2 = y + radius * -rot.y as f32;
+        frame.draw_line(x, y, x2, y2, 2.0);
     }
 }
 

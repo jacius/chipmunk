@@ -59,7 +59,7 @@ pub fn moment_for_poly<'a, V: 'a>(mass: f64, verts: &'a [V], offset: (f64, f64),
 }
 
 /// Calculate the natural centroid of a polygon.
-pub fn centroid_for_poly<'a, V: 'a>(verts: &'a [V]) -> (f64, f64)
+pub fn centroid_for_poly<'a, V: 'a>(verts: &'a [V]) -> CpVect
     where CpVect: From<&'a V> {
     let verts = verts.iter().map(|v| CpVect::from(v).into()).collect::<Vec<chip::cpVect>>();
     unsafe {

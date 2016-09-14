@@ -94,7 +94,7 @@ impl Space {
     /// Returns the global gravity for all rigid bodies in this space.
     ///
     /// Default is `(0.0, 0.0)`.
-    pub fn gravity(&self) -> (f64, f64) {
+    pub fn gravity(&self) -> CpVect {
         unsafe {
             chip::cpSpaceGetGravity(self.as_ptr()).into()
         }
