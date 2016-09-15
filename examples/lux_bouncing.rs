@@ -2,7 +2,7 @@ extern crate chipmunk;
 extern crate lux;
 extern crate rand;
 
-use chipmunk::{BodyHandle, ShapeHandle, Shape, Space};
+use chipmunk::{Body, BodyHandle, Shape, ShapeHandle, Space};
 use lux::prelude::*;
 use lux::game::Game;
 use rand::Rng;
@@ -44,13 +44,16 @@ struct Ball {
 
 impl Ball {
     fn render(&self, frame: &mut Frame) {
-        let pos = self.body.read().position();
+        let (pos, rot) = {
+            let guard = self.body.read().unwrap();
+            (guard.position(), guard.rotation())
+        };
+
         let x = pos.x as f32;
         let y = (HEIGHT as f64 - pos.y) as f32;
-        let rot = self.body.read().rotation();
 
         let radius = {
-            match *self.shape.read() {
+            match *self.shape.read().unwrap() {
                 Shape::Circle(ref circle) => circle.radius() as f32,
                 _ => 0.0,
             }
@@ -107,15 +110,21 @@ fn main() {
                    rng.gen_range(-200.0, 200.0));
         let avel = rng.gen_range(-8.0, 8.0);
 
-        let mut body = BodyHandle::new(0.0, 0.0);
-        body.write().set_position(pos);
-        body.write().set_velocity(vel);
-        body.write().set_angular_velocity_rad(avel);
+        let mut body = {
+            let mut b = Body::new(0.0, 0.0);
+            b.set_position(pos);
+            b.set_velocity(vel);
+            b.set_angular_velocity_rad(avel);
+            BodyHandle::from(b)
+        };
 
-        let mut shape = ShapeHandle::new_circle(&mut body, radius, (0.0, 0.0));
-        shape.write().set_density(1.0);
-        shape.write().set_elasticity(0.85);
-        shape.write().set_friction(0.70);
+        let mut shape = {
+            let mut s = Shape::new_circle(&mut body, radius, (0.0, 0.0));
+            s.set_density(1.0);
+            s.set_elasticity(0.85);
+            s.set_friction(0.70);
+            ShapeHandle::from(s)
+        };
 
         space.add_body(&mut body);
         space.add_shape(&mut shape);

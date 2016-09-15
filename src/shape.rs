@@ -67,7 +67,7 @@ impl Shape {
         where CpVect: From<V> {
         let pointer = unsafe {
             chip::cpCircleShapeNew(
-                body.write().as_mut_ptr(),
+                body.write().unwrap().as_mut_ptr(),
                 radius,
                 CpVect::from(offset).into()
             )
@@ -87,7 +87,7 @@ impl Shape {
         where CpVect: From<V1>, CpVect: From<V2> {
         let pointer = unsafe {
             chip::cpSegmentShapeNew(
-                body.write().as_mut_ptr(),
+                body.write().unwrap().as_mut_ptr(),
                 CpVect::from(a).into(),
                 CpVect::from(b).into(),
                 radius
@@ -113,7 +113,7 @@ impl Shape {
         unsafe {
             let _ = chip::cpPolyShapeInitRaw(
                 pointer,
-                body.write().as_mut_ptr(),
+                body.write().unwrap().as_mut_ptr(),
                 verts.len() as i32,
                 (&verts).as_ptr() as *const chip::cpVect,
                 radius
@@ -134,7 +134,7 @@ impl Shape {
     pub fn new_box(body: &mut BodyHandle, width: f64, height: f64, radius: f64) -> Shape {
         let pointer = unsafe {
             chip::cpBoxShapeNew(
-                body.write().as_mut_ptr(),
+                body.write().unwrap().as_mut_ptr(),
                 width,
                 height,
                 radius
