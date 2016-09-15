@@ -97,6 +97,9 @@ impl<T> Handle<T> {
     }
 }
 
+unsafe impl<T> Send for Handle<T> {}
+unsafe impl<T> Sync for Handle<T> {}
+
 impl<T> From<T> for Handle<T> {
     /// Creates a new Handle which takes ownership of the contents.
     fn from(contents: T) -> Handle<T> {
@@ -158,6 +161,9 @@ impl<T: Debug> Debug for Handle<T> {
 pub struct WeakHandle<T> {
     inner: Weak<RwLock<T>>
 }
+
+unsafe impl<T> Send for WeakHandle<T> {}
+unsafe impl<T> Sync for WeakHandle<T> {}
 
 impl<T> WeakHandle<T> {
     /// Tries to create a new Handle which refers to the same contents.
