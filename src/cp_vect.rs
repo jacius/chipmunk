@@ -20,7 +20,9 @@ use nalgebra;
 /// supports conversion to and from a variety of similar types, using the
 /// standard `From` and `Into` traits.
 ///
-/// You can always convert `CpVect` to and from `(f64, f64)` and `[f64; 2]`:
+/// You can always convert `CpVect` to and from `(f64, f64)` and `[f64; 2]`.
+/// You can also convert to and from `(f32, f32)` and `[f32; 2]`,
+/// but it is recommended to use `f64` if possible, to avoid loss of precision.
 ///
 /// ```
 /// # use chipmunk::CpVect;
@@ -40,7 +42,8 @@ use nalgebra;
 /// ```
 ///
 /// If you compile the chipmunk crate with the "cgmath" feature, you can also
-/// convert `CpVect` to and from `Vector2<f64>` from the cgmath crate:
+/// convert `CpVect` to and from `Vector2<f64>` and `Vector2<f32>` from
+/// the [cgmath](https://crates.io/crates/cgmath) crate:
 ///
 /// ```rust
 /// # // Fallback main function in case cgmath is not available:
@@ -62,14 +65,15 @@ use nalgebra;
 ///     let cpvect_from_vector2 = CpVect::from(vector2);
 ///     let cpvect_into_vector2: Vector2<f64> = cpvect.into();
 ///
-///     let vector2_from_cpvect = Vector2::from(cpvect);
+///     let vector2_from_cpvect = Vector2::<f64>::from(cpvect);
 ///     let vector2_into_cpvect: CpVect = vector2.into();
 /// }
 /// ```
 ///
-/// If you compile the chipmunk crate with the "nalgebra" feature, you can
-/// also convert `CpVect` to and from `Point2<f64>` and `Vector2<f64>` from
-/// the nalgebra crate:
+/// If you compile the chipmunk crate with the "nalgebra" feature,
+/// you can also convert `CpVect` to and from `Point2<f64>`, `Point2<f32>`,
+/// `Vector2<f64>`, and `Vector2<f32>` from
+/// the [nalgebra](https://crates.io/crates/nalgebra) crate:
 ///
 /// ```rust
 /// # // Fallback main function in case nalgebra is not available:
@@ -92,17 +96,16 @@ use nalgebra;
 ///     let cpvect_from_point2 = CpVect::from(point2);
 ///     let cpvect_into_point2: Point2<f64> = cpvect.into();
 ///
-///     let point2_from_cpvect = Point2::from(cpvect);
+///     let point2_from_cpvect = Point2::<f64>::from(cpvect);
 ///     let point2_into_cpvect: CpVect = point2.into();
 ///
 ///     let cpvect_from_vector2 = CpVect::from(vector2);
 ///     let cpvect_into_vector2: Vector2<f64> = cpvect.into();
 ///
-///     let vector2_from_cpvect = Vector2::from(cpvect);
+///     let vector2_from_cpvect = Vector2::<f64>::from(cpvect);
 ///     let vector2_into_cpvect: CpVect = vector2.into();
 /// }
 /// ```
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct CpVect {
@@ -299,6 +302,27 @@ impl From<CpVect> for cgmath::Vector2<f64> {
         cgmath::Vector2 { x: v.x, y: v.y }
     }
 }
+/// If chipmunk is compiled with the "cgmath" feature, `CpVect` can be
+/// converted to/from `cgmath::Vector2<f32>`.
+/// Be aware that converting from `f64` to `f32` may result in a loss of precision.
+#[cfg(feature="cgmath")]
+impl From<cgmath::Vector2<f32>> for CpVect {
+    fn from(v: cgmath::Vector2<f32>) -> CpVect {
+        CpVect {
+            x: v.x as f64,
+            y: v.y as f64,
+        }
+    }
+}
+#[cfg(feature="cgmath")]
+impl From<CpVect> for cgmath::Vector2<f32> {
+    fn from(v: CpVect) -> cgmath::Vector2<f32> {
+        cgmath::Vector2 {
+            x: v.x as f32,
+            y: v.y as f32,
+        }
+    }
+}
 
 /// If chipmunk is compiled with the "nalgebra" feature, `CpVect` can be
 /// converted to/from `nalgebra::Vector2<f64>`.
@@ -312,6 +336,28 @@ impl From<nalgebra::Vector2<f64>> for CpVect {
 impl From<CpVect> for nalgebra::Vector2<f64> {
     fn from(v: CpVect) -> nalgebra::Vector2<f64> {
         nalgebra::Vector2 { x: v.x, y: v.y }
+    }
+}
+
+/// If chipmunk is compiled with the "nalgebra" feature, `CpVect` can be
+/// converted to/from `nalgebra::Vector2<f32>`.
+/// Be aware that converting from `f64` to `f32` may result in a loss of precision.
+#[cfg(feature="nalgebra")]
+impl From<nalgebra::Vector2<f32>> for CpVect {
+    fn from(v: nalgebra::Vector2<f32>) -> CpVect {
+        CpVect {
+            x: v.x as f64,
+            y: v.y as f64,
+        }
+    }
+}
+#[cfg(feature="nalgebra")]
+impl From<CpVect> for nalgebra::Vector2<f32> {
+    fn from(v: CpVect) -> nalgebra::Vector2<f32> {
+        nalgebra::Vector2 {
+            x: v.x as f32,
+            y: v.y as f32,
+        }
     }
 }
 
@@ -330,13 +376,30 @@ impl From<CpVect> for nalgebra::Point2<f64> {
     }
 }
 
-
-// Converting CpVect to and from a tuple
-impl From<CpVect> for (f64, f64) {
-    fn from(vect: CpVect) -> (f64, f64) {
-        (vect.x, vect.y)
+/// If chipmunk is compiled with the "nalgebra" feature, `CpVect` can be
+/// converted to/from `nalgebra::Point2<f32>`.
+/// Be aware that converting from `f64` to `f32` may result in a loss of precision.
+#[cfg(feature="nalgebra")]
+impl From<nalgebra::Point2<f32>> for CpVect {
+    fn from(v: nalgebra::Point2<f32>) -> CpVect {
+        CpVect {
+            x: v.x as f64,
+            y: v.y as f64,
+        }
     }
 }
+#[cfg(feature="nalgebra")]
+impl From<CpVect> for nalgebra::Point2<f32> {
+    fn from(v: CpVect) -> nalgebra::Point2<f32> {
+        nalgebra::Point2 {
+            x: v.x as f32,
+            y: v.y as f32,
+        }
+    }
+}
+
+
+/// `CpVect` can be converted to and from `(f64, f64)`.
 impl From<(f64, f64)> for CpVect {
     fn from(tuple: (f64, f64)) -> CpVect {
         CpVect {
@@ -345,20 +408,55 @@ impl From<(f64, f64)> for CpVect {
         }
     }
 }
-
-
-// Converting CpVect to and from an array
-impl From<CpVect> for [f64; 2] {
-    fn from(vect: CpVect) -> [f64; 2] {
-        [vect.x, vect.y]
+impl From<CpVect> for (f64, f64) {
+    fn from(vect: CpVect) -> (f64, f64) {
+        (vect.x, vect.y)
     }
 }
+/// `CpVect` can be converted to and from `(f32, f32)`.
+/// Be aware that converting from `f64` to `f32` may result in a loss of precision.
+impl From<(f32, f32)> for CpVect {
+    fn from(tuple: (f32, f32)) -> CpVect {
+        CpVect {
+            x: tuple.0 as f64,
+            y: tuple.1 as f64,
+        }
+    }
+}
+impl From<CpVect> for (f32, f32) {
+    fn from(vect: CpVect) -> (f32, f32) {
+        (vect.x as f32, vect.y as f32)
+    }
+}
+
+
+/// `CpVect` can be converted to and from `[f64; 2]`.
 impl From<[f64; 2]> for CpVect {
     fn from(array: [f64; 2]) -> CpVect {
         CpVect {
             x: array[0],
             y: array[1],
         }
+    }
+}
+impl From<CpVect> for [f64; 2] {
+    fn from(vect: CpVect) -> [f64; 2] {
+        [vect.x, vect.y]
+    }
+}
+/// `CpVect` can be converted to and from `[f32; 2]`.
+/// Be aware that converting from `f64` to `f32` may result in a loss of precision.
+impl From<[f32; 2]> for CpVect {
+    fn from(array: [f32; 2]) -> CpVect {
+        CpVect {
+            x: array[0] as f64,
+            y: array[1] as f64,
+        }
+    }
+}
+impl From<CpVect> for [f32; 2] {
+    fn from(vect: CpVect) -> [f32; 2] {
+        [vect.x as f32, vect.y as f32]
     }
 }
 
@@ -426,74 +524,167 @@ mod tests {
     use super::CpVect;
 
     #[test]
-    fn cpvect_from_into_tuple() {
-        let v = CpVect::from((1.2, 3.4));
-        assert_eq!(1.2, v.x);
-        assert_eq!(3.4, v.y);
-        assert_eq!((1.2, 3.4), From::from(v));
+    fn cpvect_from_into_tuple_f64() {
+        let v = CpVect::from((2.0f64, 3.0f64));
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+        assert_eq!((2.0f64, 3.0f64), <(f64, f64)>::from(v));
 
-        let v2: CpVect = (5.6, 7.8).into();
-        assert_eq!(5.6, v2.x);
-        assert_eq!(7.8, v2.y);
-        assert_eq!((5.6, 7.8), v2.into());
+        let v2: CpVect = (4.0f64, 5.0f64).into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
+        assert_eq!((4.0f64, 5.0f64), v2.into());
     }
 
     #[test]
-    fn cpvect_from_into_array() {
-        let v = CpVect::from([1.2, 3.4]);
-        assert_eq!(1.2, v.x);
-        assert_eq!(3.4, v.y);
-        assert_eq!([1.2, 3.4], <[f64; 2]>::from(v));
+    fn cpvect_from_into_tuple_f32() {
+        let v = CpVect::from((2.0f32, 3.0f32));
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+        assert_eq!((2.0f32, 3.0f32), <(f32, f32)>::from(v));
 
-        let v2: CpVect = [5.6, 7.8].into();
-        assert_eq!(5.6, v2.x);
-        assert_eq!(7.8, v2.y);
+        let v2: CpVect = (4.0f32, 5.0f32).into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
+        assert_eq!((4.0f32, 5.0f32), v2.into());
+    }
+
+    #[test]
+    fn cpvect_from_into_array_f64() {
+        let v = CpVect::from([2.0f64, 3.0f64]);
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+        assert_eq!([2.0f64, 3.0f64], <[f64; 2]>::from(v));
+
+        let v2: CpVect = [4.0f64, 5.0f64].into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
         let array: [f64; 2] = v2.into();
-        assert_eq!([5.6, 7.8], array);
+        assert_eq!([4.0f64, 5.0f64], array);
+    }
+
+    #[test]
+    fn cpvect_from_into_array_f32() {
+        let v = CpVect::from([2.0f32, 3.0f32]);
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+        assert_eq!([2.0f32, 3.0f32], <[f32; 2]>::from(v));
+
+        let v2: CpVect = [4.0f32, 5.0f32].into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
+        let array: [f32; 2] = v2.into();
+        assert_eq!([4.0f32, 5.0f32], array);
     }
 
     #[cfg(feature="cgmath")]
     #[test]
-    fn cpvect_from_into_cgmath_vector2() {
+    fn cpvect_from_into_cgmath_vector2_f64() {
         use cgmath::Vector2;
 
-        let cpv = CpVect::from(Vector2::new(1.2, 3.4));
-        assert_eq!(1.2, cpv.x);
-        assert_eq!(3.4, cpv.y);
+        let cpv = CpVect::from(Vector2::new(2.0f64, 3.0f64));
+        assert_eq!(2.0f64, cpv.x);
+        assert_eq!(3.0f64, cpv.y);
 
-        let cgmv = Vector2::from(cpv);
-        assert_eq!(1.2, cgmv.x);
-        assert_eq!(3.4, cgmv.y);
+        let cgmv = Vector2::<f64>::from(cpv);
+        assert_eq!(2.0f64, cgmv.x);
+        assert_eq!(3.0f64, cgmv.y);
 
-        let cpv: CpVect = Vector2::new(5.6, 7.8).into();
-        assert_eq!(5.6, cpv.x);
-        assert_eq!(7.8, cpv.y);
+        let cpv: CpVect = Vector2::new(4.0f64, 5.0f64).into();
+        assert_eq!(4.0f64, cpv.x);
+        assert_eq!(5.0f64, cpv.y);
 
         let cgmv2: Vector2<f64> = cpv.into();
-        assert_eq!(5.6, cgmv2.x);
-        assert_eq!(7.8, cgmv2.y);
+        assert_eq!(4.0f64, cgmv2.x);
+        assert_eq!(5.0f64, cgmv2.y);
+    }
+
+    #[cfg(feature="cgmath")]
+    #[test]
+    fn cpvect_from_into_cgmath_vector2_f32() {
+        use cgmath::Vector2;
+
+        let cpv = CpVect::from(Vector2::new(2.0f32, 3.0f32));
+        assert_eq!(2.0f64, cpv.x);
+        assert_eq!(3.0f64, cpv.y);
+
+        let cgmv = Vector2::<f32>::from(cpv);
+        assert_eq!(2.0f32, cgmv.x);
+        assert_eq!(3.0f32, cgmv.y);
+
+        let cpv: CpVect = Vector2::new(4.0f32, 5.0f32).into();
+        assert_eq!(4.0f64, cpv.x);
+        assert_eq!(5.0f64, cpv.y);
+
+        let cgmv2: Vector2<f32> = cpv.into();
+        assert_eq!(4.0f32, cgmv2.x);
+        assert_eq!(5.0f32, cgmv2.y);
     }
 
     #[cfg(feature="nalgebra")]
     #[test]
-    fn cpvect_from_into_nalgebra_vector2() {
+    fn cpvect_from_into_nalgebra_vector2_f64() {
         use nalgebra::Vector2;
 
-        let cpv = CpVect::from(Vector2::new(1.2, 3.4));
-        assert_eq!(1.2, cpv.x);
-        assert_eq!(3.4, cpv.y);
+        let cpv = CpVect::from(Vector2::new(2.0f64, 3.0f64));
+        assert_eq!(2.0f64, cpv.x);
+        assert_eq!(3.0f64, cpv.y);
 
-        let nalv = Vector2::from(cpv);
-        assert_eq!(1.2, nalv.x);
-        assert_eq!(3.4, nalv.y);
+        let nalv = Vector2::<f64>::from(cpv);
+        assert_eq!(2.0f64, nalv.x);
+        assert_eq!(3.0f64, nalv.y);
 
-        let cpv: CpVect = Vector2::new(5.6, 7.8).into();
-        assert_eq!(5.6, cpv.x);
-        assert_eq!(7.8, cpv.y);
+        let cpv: CpVect = Vector2::new(4.0f64, 5.0f64).into();
+        assert_eq!(4.0f64, cpv.x);
+        assert_eq!(5.0f64, cpv.y);
 
         let nalv2: Vector2<f64> = cpv.into();
-        assert_eq!(5.6, nalv2.x);
-        assert_eq!(7.8, nalv2.y);
+        assert_eq!(4.0f64, nalv2.x);
+        assert_eq!(5.0f64, nalv2.y);
+    }
+
+    #[cfg(feature="nalgebra")]
+    #[test]
+    fn cpvect_from_into_nalgebra_vector2_f32() {
+        use nalgebra::Vector2;
+
+        let cpv = CpVect::from(Vector2::new(2.0f32, 3.0f32));
+        assert_eq!(2.0f64, cpv.x);
+        assert_eq!(3.0f64, cpv.y);
+
+        let nalv = Vector2::<f32>::from(cpv);
+        assert_eq!(2.0f32, nalv.x);
+        assert_eq!(3.0f32, nalv.y);
+
+        let cpv: CpVect = Vector2::new(4.0f32, 5.0f32).into();
+        assert_eq!(4.0f64, cpv.x);
+        assert_eq!(5.0f64, cpv.y);
+
+        let nalv2: Vector2<f32> = cpv.into();
+        assert_eq!(4.0f32, nalv2.x);
+        assert_eq!(5.0f32, nalv2.y);
+    }
+
+    #[cfg(feature="nalgebra")]
+    #[test]
+    fn cpvect_from_into_nalgebra_point2_f64() {
+        use nalgebra::Point2;
+
+        let cpv = CpVect::from(Point2::new(2.0f64, 3.0f64));
+        assert_eq!(2.0f64, cpv.x);
+        assert_eq!(3.0f64, cpv.y);
+
+        let nalv = Point2::<f64>::from(cpv);
+        assert_eq!(2.0f64, nalv.x);
+        assert_eq!(3.0f64, nalv.y);
+
+        let cpv: CpVect = Point2::new(4.0f64, 5.0f64).into();
+        assert_eq!(4.0f64, cpv.x);
+        assert_eq!(5.0f64, cpv.y);
+
+        let nalv2: Point2<f64> = cpv.into();
+        assert_eq!(4.0f64, nalv2.x);
+        assert_eq!(5.0f64, nalv2.y);
     }
 
     #[cfg(feature="nalgebra")]
@@ -501,20 +692,20 @@ mod tests {
     fn cpvect_from_into_nalgebra_point2() {
         use nalgebra::Point2;
 
-        let cpv = CpVect::from(Point2::new(1.2, 3.4));
-        assert_eq!(1.2, cpv.x);
-        assert_eq!(3.4, cpv.y);
+        let cpv = CpVect::from(Point2::new(2.0f32, 3.0f32));
+        assert_eq!(2.0f64, cpv.x);
+        assert_eq!(3.0f64, cpv.y);
 
-        let nalv = Point2::from(cpv);
-        assert_eq!(1.2, nalv.x);
-        assert_eq!(3.4, nalv.y);
+        let nalv = Point2::<f32>::from(cpv);
+        assert_eq!(2.0f32, nalv.x);
+        assert_eq!(3.0f32, nalv.y);
 
-        let cpv: CpVect = Point2::new(5.6, 7.8).into();
-        assert_eq!(5.6, cpv.x);
-        assert_eq!(7.8, cpv.y);
+        let cpv: CpVect = Point2::new(4.0f32, 5.0f32).into();
+        assert_eq!(4.0f64, cpv.x);
+        assert_eq!(5.0f64, cpv.y);
 
-        let nalv2: Point2<f64> = cpv.into();
-        assert_eq!(5.6, nalv2.x);
-        assert_eq!(7.8, nalv2.y);
+        let nalv2: Point2<f32> = cpv.into();
+        assert_eq!(4.0f32, nalv2.x);
+        assert_eq!(5.0f32, nalv2.y);
     }
 }
