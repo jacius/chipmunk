@@ -1,4 +1,4 @@
-//! Reference-counted thread-safe cell types.
+//! Reference-counted interally-mutable cells.
 
 // Copyright © 2016  John Croisant
 //
@@ -21,21 +21,21 @@
 // DEALINGS IN THE SOFTWARE.
 
 use std::clone::Clone;
+use std::cell::{RefCell, Ref, RefMut};
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
-use std::sync::{Arc, LockResult, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockResult, Weak};
+use std::rc::{Rc, Weak};
 
 
-/// A reference-counted thread-safe cell type, based on
-/// [`Arc`](https://doc.rust-lang.org/nightly/std/sync/struct.Arc.html)
-/// and [`RwLock`](https://doc.rust-lang.org/nightly/std/sync/struct.RwLock.html).
+/// A reference-counted internally-mutable cell type, based on
+/// [`Rc`](https://doc.rust-lang.org/nightly/std/rc/struct.Rc.html)
+/// and [`RefCell`](https://doc.rust-lang.org/nightly/std/cell/struct.RefCell.html).
 ///
 /// You can clone a Handle to create new Handles referring to the same contents.
 /// If all Handles to the contents are dropped, the contents will be dropped.
 ///
-/// You must acquire a read or write lock in order to access the Handle's contents.
-/// There can be any number of read locks **or** a single write lock at any one point in time.
-/// This ensures thread safety when accessing the contents.
+/// You must borrow the contents in order to access the Handle's contents.
+/// There can be any number of immutable borrows **or** a single mutable borrow at any one point in time.
 ///
 /// # Examples
 ///
@@ -45,71 +45,55 @@ use std::sync::{Arc, LockResult, RwLock, RwLockReadGuard, RwLockWriteGuard, TryL
 /// let handle1 = Handle::from((2, 3, 4));
 /// let mut handle2 = handle1.clone();
 ///
-/// // Temporarily acquire a write lock, and modify the contents.
+/// // Mutably borrow and modify the contents.
 /// {
-///     let mut guard = handle2.write().unwrap();
-///     guard.0 *= guard.0;
-///     guard.1 *= guard.1;
-///     guard.2 *= guard.2;
+///     let mut contents = handle2.borrow_mut();
+///     contents.0 *= contents.0;
+///     contents.1 *= contents.1;
+///     contents.2 *= contents.2;
 /// }
 ///
 /// // Modifying the contents via handle2 also affected handle1.
-/// assert_eq!((4, 9, 16), *handle1.read().unwrap());
+/// assert_eq!((4, 9, 16), *handle1.borrow());
 /// ```
 pub struct Handle<T> {
-    inner: Arc<RwLock<T>>
+    inner: Rc<RefCell<T>>
 }
 
 impl<T> Handle<T> {
-    /// Locks this Handle with shared read access, allowing you to read (but not write) the Handle's contents.
-    /// The current thread will be blocked until the lock can be acquired.
-    /// See [`RwLock::read`](https://doc.rust-lang.org/nightly/std/sync/struct.RwLock.html#method.read).
-    pub fn read(&self) -> LockResult<RwLockReadGuard<T>> {
-        self.inner.read()
+    /// Immutably borrows the Handle's contents.
+    ///
+    /// The borrow lasts until the returned Ref exits scope.
+    /// Multiple immutable borrows can be taken out at the same time.
+    /// See [`RefCell::borrow`](https://doc.rust-lang.org/nightly/std/cell/struct.RefCell.html#method.borrow).
+    pub fn borrow(&self) -> Ref<T> {
+        self.inner.borrow()
     }
 
-    /// Attempts to lock this Handle with shared read access.
-    /// If the access could not be granted at this time, then `Err` is returned.
-    /// Unlike `read`, this will not block the current thread.
-    /// See [`RwLock::try_read`](https://doc.rust-lang.org/nightly/std/sync/struct.RwLock.html#method.try_read).
-    pub fn try_read(&self) -> TryLockResult<RwLockReadGuard<T>> {
-        self.inner.try_read()
-    }
-
-    /// Locks this Handle with exclusive write access, allowing you to read and write the Handle's contents.
-    /// The current thread will be blocked until the lock can be acquired.
-    /// See [`RwLock::write`](https://doc.rust-lang.org/nightly/std/sync/struct.RwLock.html#method.write).
-    pub fn write(&mut self) -> LockResult<RwLockWriteGuard<T>> {
-        self.inner.write()
-    }
-
-    /// Attempts to lock this Handle with exclusive write access.
-    /// If the access could not be granted at this time, then `Err` is returned.
-    /// Unlike `write`, this will not block the current thread.
-    /// See [`RwLock::try_write`](https://doc.rust-lang.org/nightly/std/sync/struct.RwLock.html#method.try_write).
-    pub fn try_write(&self) -> TryLockResult<RwLockWriteGuard<T>> {
-        self.inner.try_write()
+    /// Mutably borrows the Handle's contents.
+    ///
+    /// The borrow lasts until the returned RefMut exits scope.
+    /// The contents cannot be borrowed again (either immutably or mutably) while this borrow is active.
+    /// See [`RefCell::borrow_mut`](https://doc.rust-lang.org/nightly/std/cell/struct.RefCell.html#method.borrow_mut).
+    pub fn borrow_mut(&mut self) -> RefMut<T> {
+        self.inner.borrow_mut()
     }
 
     /// Creates a new WeakHandle which refers to the same contents.
     pub fn downgrade(&self) -> WeakHandle<T> {
-        WeakHandle { inner: Arc::downgrade(&self.inner) }
+        WeakHandle { inner: Rc::downgrade(&self.inner) }
     }
 }
-
-unsafe impl<T> Send for Handle<T> {}
-unsafe impl<T> Sync for Handle<T> {}
 
 impl<T> From<T> for Handle<T> {
     /// Creates a new Handle which takes ownership of the contents.
     fn from(contents: T) -> Handle<T> {
-        Handle { inner: Arc::new(RwLock::new(contents)) }
+        Handle { inner: Rc::new(RefCell::new(contents)) }
     }
 }
 
 impl<T> Clone for Handle<T> {
     /// Creates a new Handle which refers to the same contents.
-    /// This increases the reference count for the lifetime of the new Handle.
     fn clone(&self) -> Handle<T> {
         Handle { inner: self.inner.clone() }
     }
@@ -118,15 +102,15 @@ impl<T> Clone for Handle<T> {
 impl<T: Debug> Debug for Handle<T> {
     fn fmt(&self, fmt: &mut Formatter) -> ::std::fmt::Result {
         fmt.debug_tuple("Handle")
-            .field(self.read().unwrap().deref())
+            .field(self.borrow().deref())
             .finish()
     }
 }
 
 
 /// A weak version of Handle, based on
-/// [`Weak`](https://doc.rust-lang.org/nightly/std/sync/struct.Weak.html)
-/// and [`RwLock`](https://doc.rust-lang.org/nightly/std/sync/struct.RwLock.html).
+/// [`Weak`](https://doc.rust-lang.org/nightly/std/rc/struct.Weak.html)
+/// and [`RefCell`](https://doc.rust-lang.org/nightly/std/cell/struct.RefCell.html).
 ///
 /// Unlike Handle, WeakHandle does not keep its contents alive.
 /// If there are no (strong) Handles to the contents, the contents will be dropped.
@@ -142,43 +126,39 @@ impl<T: Debug> Debug for Handle<T> {
 /// let handle1 = Handle::from((2, 3, 4));
 ///
 /// // Create a new WeakHandle.
-/// let weak = &handle1.downgrade();
+/// let weak = handle1.downgrade();
 ///
 /// // Try to upgrade it so we can access the contents.
 /// let mut handle2 = weak.upgrade().unwrap();
 ///
-/// // Temporarily acquire a write lock, and modify the contents.
+/// // Mutably borrow and modify the contents.
 /// {
-///     let mut guard = handle2.write().unwrap();
-///     guard.0 *= guard.0;
-///     guard.1 *= guard.1;
-///     guard.2 *= guard.2;
+///     let mut contents = handle2.borrow_mut();
+///     contents.0 *= contents.0;
+///     contents.1 *= contents.1;
+///     contents.2 *= contents.2;
 /// }
 ///
 /// // Modifying the contents via handle2 also affected handle1.
-/// assert_eq!((4, 9, 16), *handle1.read().unwrap());
+/// assert_eq!((4, 9, 16), *handle1.borrow());
 /// ```
 pub struct WeakHandle<T> {
-    inner: Weak<RwLock<T>>
+    inner: Weak<RefCell<T>>
 }
-
-unsafe impl<T> Send for WeakHandle<T> {}
-unsafe impl<T> Sync for WeakHandle<T> {}
 
 impl<T> WeakHandle<T> {
     /// Tries to create a new Handle which refers to the same contents.
-    /// Returns None if the contents no longer exist.
+    /// Returns `None` if the contents no longer exist.
     pub fn upgrade(&self) -> Option<Handle<T>> {
         match Weak::upgrade(&self.inner) {
-            Some(arc) => Some(Handle{ inner: arc }),
+            Some(inner) => Some(Handle{ inner: inner }),
             None => None
         }
     }
 }
 
 impl<T> Clone for WeakHandle<T> {
-    /// Creates a shallow clone which refers to the same contents.
-    /// This does not affect the reference count.
+    /// Creates a new WeakHandle which refers to the same contents.
     fn clone(&self) -> WeakHandle<T> {
         WeakHandle { inner: self.inner.clone() }
     }

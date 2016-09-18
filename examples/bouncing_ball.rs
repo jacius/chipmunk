@@ -37,7 +37,7 @@ fn main() {
     // Run the simulation!
     for _ in 0..40 {
         space.step(1.0/30.0);
-        let pos = ball_body.read().unwrap().position();
+        let pos = ball_body.borrow().position();
         let y = (4.0 * pos.y).round().max(0.0);
         let s: String = ::std::iter::repeat(' ').take(y as usize).collect();
         println!("{}o", s);

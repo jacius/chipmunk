@@ -44,16 +44,14 @@ struct Ball {
 
 impl Ball {
     fn render(&self, frame: &mut Frame) {
-        let (pos, rot) = {
-            let guard = self.body.read().unwrap();
-            (guard.position(), guard.rotation())
-        };
+        let pos = self.body.borrow().position();
+        let rot = self.body.borrow().rotation();
 
         let x = pos.x as f32;
         let y = (HEIGHT as f64 - pos.y) as f32;
 
         let radius = {
-            match *self.shape.read().unwrap() {
+            match *self.shape.borrow() {
                 Shape::Circle(ref circle) => circle.radius() as f32,
                 _ => 0.0,
             }

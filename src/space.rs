@@ -53,38 +53,38 @@ impl Space {
     pub fn add_body(&mut self, body: &mut BodyHandle) {
         self.bodies.push(body.clone());
         unsafe {
-            chip::cpSpaceAddBody(self.as_mut_ptr(), body.write().unwrap().as_mut_ptr());
+            chip::cpSpaceAddBody(self.as_mut_ptr(), body.borrow_mut().as_mut_ptr());
         }
     }
 
     pub fn add_shape(&mut self, shape: &mut ShapeHandle) {
         self.shapes.push(shape.clone());
         unsafe {
-            chip::cpSpaceAddShape(self.as_mut_ptr(), shape.write().unwrap().as_mut_ptr());
+            chip::cpSpaceAddShape(self.as_mut_ptr(), shape.borrow_mut().as_mut_ptr());
         }
     }
 
     pub fn remove_body(&mut self, body: &mut BodyHandle) {
         unsafe {
             let pos = self.bodies.iter_mut().position(|b| {
-                b.read().unwrap().as_ptr() == body.read().unwrap().as_ptr()
+                b.borrow().as_ptr() == body.borrow().as_ptr()
             });
             if let Some(pos) = pos {
                 self.bodies.remove(pos);
             }
-            chip::cpSpaceRemoveBody(self.as_mut_ptr(), body.write().unwrap().as_mut_ptr());
+            chip::cpSpaceRemoveBody(self.as_mut_ptr(), body.borrow_mut().as_mut_ptr());
         }
     }
 
     pub fn remove_shape(&mut self, shape: &mut ShapeHandle) {
         unsafe {
             let pos = self.shapes.iter_mut().position(|s| {
-                s.read().unwrap().as_ptr() == shape.read().unwrap().as_ptr()
+                s.borrow().as_ptr() == shape.borrow().as_ptr()
             });
             if let Some(pos) = pos {
                 self.shapes.remove(pos);
             }
-            chip::cpSpaceRemoveShape(self.as_mut_ptr(), shape.write().unwrap().as_mut_ptr());
+            chip::cpSpaceRemoveShape(self.as_mut_ptr(), shape.borrow_mut().as_mut_ptr());
         }
     }
 
@@ -245,14 +245,14 @@ impl Space {
     /// Update the collision detection data for a specific shape in the space.
     pub fn reindex_shape(&mut self, shape: &mut ShapeHandle) {
         unsafe {
-            chip::cpSpaceReindexShape(self.as_mut_ptr(), shape.write().unwrap().as_mut_ptr())
+            chip::cpSpaceReindexShape(self.as_mut_ptr(), shape.borrow_mut().as_mut_ptr())
         }
     }
 
     /// Update the collision detection data for all shapes attached to a body.
     pub fn reindex_shapes_for_body(&mut self, body: &mut BodyHandle) {
         unsafe {
-            chip::cpSpaceReindexShapesForBody(self.as_mut_ptr(), body.write().unwrap().as_mut_ptr())
+            chip::cpSpaceReindexShapesForBody(self.as_mut_ptr(), body.borrow_mut().as_mut_ptr())
         }
     }
 
