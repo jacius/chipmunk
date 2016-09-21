@@ -408,6 +408,14 @@ impl From<(f64, f64)> for CpVect {
         }
     }
 }
+impl<'a> From<&'a (f64, f64)> for CpVect {
+    fn from(tuple: &'a (f64, f64)) -> CpVect {
+        CpVect {
+            x: tuple.0,
+            y: tuple.1,
+        }
+    }
+}
 impl From<CpVect> for (f64, f64) {
     fn from(vect: CpVect) -> (f64, f64) {
         (vect.x, vect.y)
@@ -417,6 +425,14 @@ impl From<CpVect> for (f64, f64) {
 /// Be aware that converting from `f64` to `f32` may result in a loss of precision.
 impl From<(f32, f32)> for CpVect {
     fn from(tuple: (f32, f32)) -> CpVect {
+        CpVect {
+            x: tuple.0 as f64,
+            y: tuple.1 as f64,
+        }
+    }
+}
+impl<'a> From<&'a (f32, f32)> for CpVect {
+    fn from(tuple: &'a (f32, f32)) -> CpVect {
         CpVect {
             x: tuple.0 as f64,
             y: tuple.1 as f64,
@@ -439,6 +455,14 @@ impl From<[f64; 2]> for CpVect {
         }
     }
 }
+impl<'a> From<&'a [f64; 2]> for CpVect {
+    fn from(array: &'a [f64; 2]) -> CpVect {
+        CpVect {
+            x: array[0],
+            y: array[1],
+        }
+    }
+}
 impl From<CpVect> for [f64; 2] {
     fn from(vect: CpVect) -> [f64; 2] {
         [vect.x, vect.y]
@@ -448,6 +472,14 @@ impl From<CpVect> for [f64; 2] {
 /// Be aware that converting from `f64` to `f32` may result in a loss of precision.
 impl From<[f32; 2]> for CpVect {
     fn from(array: [f32; 2]) -> CpVect {
+        CpVect {
+            x: array[0] as f64,
+            y: array[1] as f64,
+        }
+    }
+}
+impl<'a> From<&'a [f32; 2]> for CpVect {
+    fn from(array: &'a [f32; 2]) -> CpVect {
         CpVect {
             x: array[0] as f64,
             y: array[1] as f64,
@@ -537,6 +569,17 @@ mod tests {
     }
 
     #[test]
+    fn cpvect_from_ref_tuple_f64() {
+        let v = CpVect::from(&(2.0f64, 3.0f64));
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+
+        let v2: CpVect = (&(4.0f64, 5.0f64)).into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
+    }
+
+    #[test]
     fn cpvect_from_into_tuple_f32() {
         let v = CpVect::from((2.0f32, 3.0f32));
         assert_eq!(2.0f64, v.x);
@@ -547,6 +590,17 @@ mod tests {
         assert_eq!(4.0f64, v2.x);
         assert_eq!(5.0f64, v2.y);
         assert_eq!((4.0f32, 5.0f32), v2.into());
+    }
+
+    #[test]
+    fn cpvect_from_ref_tuple_f32() {
+        let v = CpVect::from(&(2.0f32, 3.0f32));
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+
+        let v2: CpVect = (&(4.0f32, 5.0f32)).into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
     }
 
     #[test]
@@ -564,6 +618,17 @@ mod tests {
     }
 
     #[test]
+    fn cpvect_from_ref_array_f64() {
+        let v = CpVect::from(&[2.0f64, 3.0f64]);
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+
+        let v2: CpVect = (&[4.0f64, 5.0f64]).into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
+    }
+
+    #[test]
     fn cpvect_from_into_array_f32() {
         let v = CpVect::from([2.0f32, 3.0f32]);
         assert_eq!(2.0f64, v.x);
@@ -575,6 +640,17 @@ mod tests {
         assert_eq!(5.0f64, v2.y);
         let array: [f32; 2] = v2.into();
         assert_eq!([4.0f32, 5.0f32], array);
+    }
+
+    #[test]
+    fn cpvect_from_ref_array_f32() {
+        let v = CpVect::from(&[2.0f32, 3.0f32]);
+        assert_eq!(2.0f64, v.x);
+        assert_eq!(3.0f64, v.y);
+
+        let v2: CpVect = (&[4.0f32, 5.0f32]).into();
+        assert_eq!(4.0f64, v2.x);
+        assert_eq!(5.0f64, v2.y);
     }
 
     #[cfg(feature="cgmath")]
